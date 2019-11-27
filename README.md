@@ -12,12 +12,14 @@ GraphiQL is the reference implementation of this monorepo, GraphQL IDE, an offic
 
 The `graphql-language-service-interface` should be your go-to for language server protocol spec (LSP) implementations, which is now our first order IDE spec.
 
-The purpose of this monorepo is to give folks a solid language service, and editor modes, and to show an example of how to use them with GrahiQL.
+The purpose of this monorepo is to give folks a solid language service, and editor modes, and to show an example of how to use them with GraphiQL.
 
 
 ## [GraphiQL](packages/graphiql#readme)
 [![NPM](https://img.shields.io/npm/v/graphiql.svg)](https://npmjs.com/graphiql)
 [![CDNJS](https://img.shields.io/cdnjs/v/graphiql.svg)](https://cdnjs.com/libraries/graphiql)
+
+**Note**: We are aware that `graphiql.min.js` is not working as of `0.15.0`, and we are waiting for the resolution to be approved so we can re-release it. If you need to use a CDN build, you can use the unminified `graphiql.js` which is working for all versions.
 
 _/ˈɡrafək(ə)l/_ A graphical interactive in-browser GraphQL IDE. [Try the live demo](http://graphql.org/swapi-graphql). We also have [a demo using our latest netlify build](http://graphiql-test.netlify.com) for the master branch.
 
@@ -85,4 +87,4 @@ Eventually we hope to move these to a repo that serves this purpose.
 
 - __Discord__ - Most discussion outside of github happens on our [Discord Server](https://discord.gg/eNuu9Cb)
 - __Twitter__ - [@GraphiQL](https://twitter.com/@GraphiQL) and [#GraphiQL](https://twitter.com/hashtag/GraphiQL)
-- __Github__ - Create feature requests and start discussions above
+- __GitHub__ - Create feature requests and start discussions above

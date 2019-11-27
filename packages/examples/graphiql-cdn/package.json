@@ -1,11 +1,11 @@
 {
   "name": "graphiql-example-cdn",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": true,
   "license": "MIT",
   "description": "An example using GraphiQL",
   "scripts": {
-    "setup": "cp ../../graphiql/graphiql.js ../../graphiql/graphiql.css .",
+    "build-demo": "cp ../../graphiql/graphiql.js ../../graphiql/graphiql.css ../../graphiql/resources/renderExample.js .",
     "start": "node server"
   },
   "dependencies": {
