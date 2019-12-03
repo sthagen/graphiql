@@ -11,6 +11,8 @@ import PropTypes from 'prop-types';
 import QueryStore from '../utility/QueryStore';
 import HistoryQuery from './HistoryQuery';
 
+import '../css/history.css';
+
 const MAX_QUERY_SIZE = 100000;
 const MAX_HISTORY_LENGTH = 20;
 
@@ -88,12 +90,12 @@ export class QueryHistory extends React.Component {
 
   render() {
     const queries = this.state.queries.slice().reverse();
-    const queryNodes = queries.map(query => {
+    const queryNodes = queries.map((query, i) => {
       return (
         <HistoryQuery
           handleEditLabel={this.editLabel}
           handleToggleFavorite={this.toggleFavorite}
-          key={query.query}
+          key={`${i}:${query.label || query.query}`}
           onSelect={this.props.onSelectQuery}
           {...query}
         />
