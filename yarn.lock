@@ -3179,10 +3179,10 @@ bs-logger@0.x:
   dependencies:
     fast-json-stable-stringify "2.x"
 
-bser@^2.0.0:
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/bser/-/bser-2.1.0.tgz#65fc784bf7f87c009b973c12db6546902fa9c7b5"
-  integrity sha512-8zsjWrQkkBoLK6uxASk1nJ2SKv97ltiGDo6A3wA0/yRPz+CwmEyDo0hUrhIuukG2JHpAl3bvFIixw2/3Hi0DOg==
+bser@2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/bser/-/bser-2.1.1.tgz#e6787da20ece9d07998533cfd9de6f5c38f4bc05"
+  integrity sha512-gQxTNE/GAfIIrmHLUE3oJyp5FO6HRBfhjnw4/wMmA63ZGDJnWBmgY/lyQBpnDUkGmAhbSe39tx2d/iTOAfglwQ==
   dependencies:
     node-int64 "^0.4.0"
 
@@ -4241,10 +4241,10 @@ css-has-pseudo@^0.10.0:
     postcss "^7.0.6"
     postcss-selector-parser "^5.0.0-rc.4"
 
-css-loader@3.3.0:
-  version "3.3.0"
-  resolved "https://registry.yarnpkg.com/css-loader/-/css-loader-3.3.0.tgz#65f889807baec3197313965d6cda9899f936734d"
-  integrity sha512-x9Y1vvHe5RR+4tzwFdWExPueK00uqFTCw7mZy+9aE/X1SKWOArm5luaOrtJ4d05IpOwJ6S86b/tVcIdhw1Bu4A==
+css-loader@3.3.2:
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/css-loader/-/css-loader-3.3.2.tgz#41b2086528aa4fbf8c0692e874bc14f081129b21"
+  integrity sha512-4XSiURS+YEK2fQhmSaM1onnUm0VKWNf6WWBYjkp9YbSDGCBTVZ5XOM6Gkxo8tLgQlzkZOBJvk9trHlDk4gjEYg==
   dependencies:
     camelcase "^5.3.1"
     cssesc "^3.0.0"
@@ -4429,9 +4429,9 @@ cyclist@^1.0.1:
   integrity sha1-WW6WmP0MgOEgOMK4LW6xs1tiJNk=
 
 cypress@^3.6.1:
-  version "3.7.0"
-  resolved "https://registry.yarnpkg.com/cypress/-/cypress-3.7.0.tgz#e2cd71b87b6ce0d4c72c6ea25da1005d75c1f231"
-  integrity sha512-o+vfRxqAba8TduelzfZQ4WHmj2yNEjaoO2EuZ8dZ9pJpuW+WGtBGheKIp6zkoQsp8ZgFe8OoHh1i2mY8BDnMAw==
+  version "3.8.0"
+  resolved "https://registry.yarnpkg.com/cypress/-/cypress-3.8.0.tgz#7d4cd08f81f9048ee36760cc9ee3b9014f9e84ab"
+  integrity sha512-gtEbqCgKETRc3pQFMsELRgIBNgiQg7vbOWTrCi7WE7bgOwNCaW9PEX8Jb3UN8z/maIp9WwzoFfeySfelYY7nRA==
   dependencies:
     "@cypress/listr-verbose-renderer" "0.4.1"
     "@cypress/xvfb" "1.2.4"
@@ -5753,11 +5753,11 @@ faye-websocket@~0.11.1:
     websocket-driver ">=0.5.1"
 
 fb-watchman@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.npmjs.org/fb-watchman/-/fb-watchman-2.0.0.tgz#54e9abf7dfa2f26cd9b1636c588c1afc05de5d58"
-  integrity sha1-VOmr99+i8mzZsWNsWIwa/AXeXVg=
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/fb-watchman/-/fb-watchman-2.0.1.tgz#fc84fb39d2709cf3ff6d743706157bb5708a8a85"
+  integrity sha512-DkPJKQeY6kKwmuMretBhr7G6Vodr7bFwDYTXIkfG1gjvNpaxBTQV3PbXg6bR1c1UP4jPOX0jHUbbHANL9vRjVg==
   dependencies:
-    bser "^2.0.0"
+    bser "2.1.1"
 
 fbjs@^0.8.9:
   version "0.8.17"
