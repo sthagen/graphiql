@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@babel/cli@7.7.5":
-  version "7.7.5"
-  resolved "https://registry.yarnpkg.com/@babel/cli/-/cli-7.7.5.tgz#25702cc65418efc06989af3727897b9f4c8690b6"
-  integrity sha512-y2YrMGXM3NUyu1Myg0pxg+Lx6g8XhEyvLHYNRwTBV6fDek3H7Io6b7N/LXscLs4HWn4HxMdy7f2rM1rTMp2mFg==
+"@babel/cli@7.7.7":
+  version "7.7.7"
+  resolved "https://registry.yarnpkg.com/@babel/cli/-/cli-7.7.7.tgz#56849acbf81d1a970dd3d1b3097c8ebf5da3f534"
+  integrity sha512-XQw5KyCZyu/M8/0rYiZyuwbgIQNzOrJzs9dDLX+MieSgBwTLvTj4QVbLmxJACAIvQIDT7PtyHN2sC48EOWTgaA==
   dependencies:
     commander "^4.0.1"
     convert-source-map "^1.1.0"
@@ -271,9 +271,9 @@
     v8flags "^3.1.1"
 
 "@babel/parser@^7.0.0", "@babel/parser@^7.1.0", "@babel/parser@^7.4.3", "@babel/parser@^7.4.5", "@babel/parser@^7.7.4", "@babel/parser@^7.7.5":
-  version "7.7.5"
-  resolved "https://registry.yarnpkg.com/@babel/parser/-/parser-7.7.5.tgz#cbf45321619ac12d83363fcf9c94bb67fa646d71"
-  integrity sha512-KNlOe9+/nk4i29g0VXgl8PEXIRms5xKLJeuZ6UptN0fHv+jDiriG+y94X6qAgWTR0h3KaoM1wK5G5h7MHFRSig==
+  version "7.7.7"
+  resolved "https://registry.yarnpkg.com/@babel/parser/-/parser-7.7.7.tgz#1b886595419cf92d811316d5b715a53ff38b4937"
+  integrity sha512-WtTZMZAZLbeymhkd/sEaPD8IQyGAhmuTuvTzLiCFM7iXiVdY0gc0IaI+cW0fh1BnSMbJSzXX6/fHllgHKwHhXw==
 
 "@babel/plugin-proposal-async-generator-functions@^7.7.4":
   version "7.7.4"
@@ -3723,9 +3723,9 @@ codecov@^3.5.0:
     urlgrey "^0.4.4"
 
 codemirror@^5.28.0, codemirror@^5.47.0:
-  version "5.49.2"
-  resolved "https://registry.yarnpkg.com/codemirror/-/codemirror-5.49.2.tgz#c84fdaf11b19803f828b0c67060c7bc6d154ccad"
-  integrity sha512-dwJ2HRPHm8w51WB5YTF9J7m6Z5dtkqbU9ntMZ1dqXyFB9IpjoUFDj80ahRVEoVanfIp6pfASJbOlbWdEf8FOzQ==
+  version "5.50.0"
+  resolved "https://registry.yarnpkg.com/codemirror/-/codemirror-5.50.0.tgz#aeacd18f225735b17cbab98908edace87fedcdab"
+  integrity sha512-32LAmGcBNhKtJP4WGgkcaCVQDyChAyaWA6jasg778ziZzo3PWBuhpAQIJMO8//Id45RoaLyXjuhcRUBoS8Vg+Q==
 
 collection-visit@^1.0.0:
   version "1.0.0"
@@ -8530,9 +8530,9 @@ linkify-it@^2.0.0:
     uc.micro "^1.0.1"
 
 lint-staged@^10.0.0-beta.8:
-  version "10.0.0-beta.12"
-  resolved "https://registry.yarnpkg.com/lint-staged/-/lint-staged-10.0.0-beta.12.tgz#7fd204e4736a2b6990a4500ce3ca33fb9ab8151a"
-  integrity sha512-UovL5rt7zU7csGICq4ZyO0Uhl9D4lR3Uefr5KJZrv0BTMGITxVHSX34eI9asTE6maM+xciYhFscx0/+r08w8dQ==
+  version "10.0.0-beta.13"
+  resolved "https://registry.yarnpkg.com/lint-staged/-/lint-staged-10.0.0-beta.13.tgz#49a802b6c5984977e82c4cbdcfe65d1b382efcfb"
+  integrity sha512-zPCqJG4WMsQ4OueBU11Mv82lwXnbUdEiQMcgJG2EA+3H2vps1UkvforLj1JPuVzAXuKLMzLVfaplzqzvbnZuPA==
   dependencies:
     chalk "^3.0.0"
     commander "^4.0.1"
