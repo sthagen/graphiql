@@ -10,7 +10,7 @@ module.exports = {
   },
   clearMocks: true,
   collectCoverage: true,
-  setupFiles: [path.join(__dirname, '/resources/enzyme.config.js')],
+  setupFiles: [path.join(__dirname, '/resources/test.config.js')],
   testMatch: [
     '<rootDir>/packages/*/src/**/*-test.{js,ts}',
     '<rootDir>/packages/*/src/**/*.spec.{js,ts}',
@@ -30,7 +30,7 @@ module.exports = {
   collectCoverageFrom: [
     '**/src/**/*.{js,jsx,ts,tsx}',
     '!**/src/**/*.stories.js*',
-    '!**/new-components/theme/default.js*',
+    '!**/new-components/themes/**/index.js*',
     '!**/new-components/**', // TODO: add proper coverage to new components
     '!**/{dist,esm}/**',
     '!**/node_modules/**',
