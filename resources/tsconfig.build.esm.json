@@ -19,6 +19,9 @@
     },
     {
       "path": "../packages/graphql-language-service-interface/tsconfig.esm.json"
+    },
+    {
+      "path": "../packages/graphql-language-service-server/tsconfig.esm.json"
     }
   ]
 }
