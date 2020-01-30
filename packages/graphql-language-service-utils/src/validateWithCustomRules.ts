@@ -7,9 +7,8 @@
  *
  */
 
-import { CustomValidationRule } from 'graphql-language-service-types';
-
 import {
+  ValidationRule,
   DocumentNode,
   Kind,
   specifiedRules,
@@ -27,14 +26,14 @@ import { ExecutableDefinitions } from 'graphql/validation/rules/ExecutableDefini
 export function validateWithCustomRules(
   schema: GraphQLSchema,
   ast: DocumentNode,
-  customRules?: Array<CustomValidationRule>,
+  customRules?: Array<ValidationRule>,
   isRelayCompatMode?: boolean,
 ): Array<GraphQLError> {
   const rules = specifiedRules.filter(rule => {
     // Because every fragment is considered for determing model subsets that may
     // be used anywhere in the codebase they're all technically "used" by clients
     // of graphql-data. So we remove this rule from the validators.
-    if (rule === NoUnusedFragmentsRule && rule === ExecutableDefinitions) {
+    if (rule === NoUnusedFragmentsRule || rule === ExecutableDefinitions) {
       return false;
     }
     if (isRelayCompatMode && rule === KnownFragmentNamesRule) {

@@ -1,0 +1,16 @@
+name: Node.JS CI
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: lint & test
+    steps:
+      - uses: actions/checkout@v1
+      - uses: bahmutov/npm-install@v1
+      - run: yarn ci
+  e2e:
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v1
+      - uses: bahmutov/npm-install@v1
+      - run: yarn ci-e2e
