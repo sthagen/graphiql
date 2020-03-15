@@ -9,6 +9,7 @@
 
 import * as net from 'net';
 import { MessageProcessor } from './MessageProcessor';
+import { GraphQLConfig } from 'graphql-config';
 
 import {
   createMessageConnection,
@@ -49,7 +50,10 @@ type Options = {
   method?: 'socket' | 'stream' | 'node';
   // the directory where graphql-config is found
   configDir?: string;
+  // array of functions to transform the graphql-config and add extensions dynamically
+  extensions?: Array<(config: GraphQLConfig) => GraphQLConfig>;
 };
+('graphql-language-service-types');
 
 /**
  * startServer - initialize LSP server with options
@@ -58,52 +62,65 @@ type Options = {
  * @returns {Promise<void>}
  */
 export default async function startServer(options: Options): Promise<void> {
-  const logger = new Logger();
+  try {
+    const logger = new Logger();
 
-  if (options && options.method) {
-    let reader;
-    let writer;
-    switch (options.method) {
-      case 'socket':
-        // For socket connection, the message connection needs to be
-        // established before the server socket starts listening.
-        // Do that, and return at the end of this block.
-        if (!options.port) {
-          process.stderr.write(
-            '--port is required to establish socket connection.',
-          );
-          process.exit(1);
-        }
+    if (options && options.method) {
+      let reader;
+      let writer;
+      switch (options.method) {
+        case 'socket':
+          // For socket connection, the message connection needs to be
+          // established before the server socket starts listening.
+          // Do that, and return at the end of this block.
+          if (!options.port) {
+            process.stderr.write(
+              '--port is required to establish socket connection.',
+            );
+            process.exit(1);
+          }
 
-        const port = options.port;
-        const socket = net
-          .createServer(client => {
-            client.setEncoding('utf8');
-            reader = new SocketMessageReader(client);
-            writer = new SocketMessageWriter(client);
-            client.on('end', () => {
-              socket.close();
-              process.exit(0);
-            });
-            const connection = createMessageConnection(reader, writer, logger);
-            addHandlers(connection, logger, options.configDir);
-            connection.listen();
-          })
-          .listen(port);
-        return;
-      case 'stream':
-        reader = new StreamMessageReader(process.stdin);
-        writer = new StreamMessageWriter(process.stdout);
-        break;
-      case 'node':
-      default:
-        reader = new IPCMessageReader(process);
-        writer = new IPCMessageWriter(process);
-        break;
+          const port = options.port;
+          const socket = net
+            .createServer(client => {
+              client.setEncoding('utf8');
+              reader = new SocketMessageReader(client);
+              writer = new SocketMessageWriter(client);
+              client.on('end', () => {
+                socket.close();
+                process.exit(0);
+              });
+              const connection = createMessageConnection(
+                reader,
+                writer,
+                logger,
+              );
+              addHandlers(
+                connection,
+                logger,
+                options.configDir,
+                options.extensions,
+              );
+              connection.listen();
+            })
+            .listen(port);
+          return;
+        case 'stream':
+          reader = new StreamMessageReader(process.stdin);
+          writer = new StreamMessageWriter(process.stdout);
+          break;
+        case 'node':
+        default:
+          reader = new IPCMessageReader(process);
+          writer = new IPCMessageWriter(process);
+          break;
+      }
+      const connection = createMessageConnection(reader, writer, logger);
+      addHandlers(connection, logger, options.configDir, options.extensions);
+      connection.listen();
     }
-    const connection = createMessageConnection(reader, writer, logger);
-    addHandlers(connection, logger, options.configDir);
-    connection.listen();
+  } catch (err) {
+    process.stderr.write(err.message);
   }
 }
 
@@ -111,8 +128,9 @@ function addHandlers(
   connection: MessageConnection,
   logger: Logger,
   configDir?: string,
+  extensions?: Array<(config: GraphQLConfig) => GraphQLConfig>,
 ): void {
-  const messageProcessor = new MessageProcessor(logger);
+  const messageProcessor = new MessageProcessor(logger, extensions);
   connection.onNotification(
     DidOpenTextDocumentNotification.type,
     async params => {
