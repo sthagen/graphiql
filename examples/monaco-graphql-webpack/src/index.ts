@@ -1,7 +1,12 @@
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
+/* global monaco */
 
 import 'regenerator-runtime/runtime';
 import 'monaco-graphql/esm/monaco.contribution';
+
+// eslint-disable-next-line spaced-comment
+/// <reference types='monaco-editor'/>
+// eslint-disable-next-line spaced-comment
+///  <reference types='monaco-graphql'/>
 
 // NOTE: using loader syntax becuase Yaml worker imports editor.worker directly and that
 // import shouldn't go through loader syntax.
@@ -12,7 +17,7 @@ import JSONWorker from 'worker-loader!monaco-editor/esm/vs/language/json/json.wo
 // @ts-ignore
 import GraphQLWorker from 'worker-loader!monaco-graphql/esm/graphql.worker';
 
-const SCHEMA_URL = 'https://swapi-graphql.netlify.app/.netlify/functions/index';
+const SCHEMA_URL = 'https://api.spacex.land/graphql/';
 
 // @ts-ignore
 window.MonacoEnvironment = {
@@ -27,19 +32,22 @@ window.MonacoEnvironment = {
   },
 };
 
-// const schemaInput = document.createElement('input');
-// schemaInput.type = 'text'
+const schemaInput = document.createElement('input');
+schemaInput.type = 'text';
 
-// // @ts-ignore
-// schemaInput.value = SCHEMA_URL
+schemaInput.value = SCHEMA_URL;
 
-// schemaInput.onchange = (e) => {
-//   e.preventDefault()
-//   console.log(e.target.value)
-// }
+schemaInput.onkeyup = e => {
+  e.preventDefault();
+  // @ts-ignore
+  const val = e?.target?.value as string;
+  if (val && typeof val === 'string') {
+    monaco.languages.graphql.graphqlDefaults.setSchemaConfig({ uri: val });
+  }
+};
 
-// const toolbar = document.getElementById('toolbar')
-// toolbar?.appendChild(schemaInput)
+const toolbar = document.getElementById('toolbar');
+toolbar?.appendChild(schemaInput);
 
 const variablesModel = monaco.editor.createModel(
   `{}`,
@@ -51,22 +59,31 @@ const resultsEditor = monaco.editor.create(
   document.getElementById('results') as HTMLElement,
   {
     model: variablesModel,
+    automaticLayout: true,
   },
 );
 const variablesEditor = monaco.editor.create(
   document.getElementById('variables') as HTMLElement,
   {
-    value: `{ }`,
+    value: `{ "limit": 10 }`,
     language: 'json',
+    automaticLayout: true,
   },
 );
 const model = monaco.editor.createModel(
   `
-query Example { 
-  allFilms {
-      films {
-          id
-      }
+query Example($limit: Int) { 
+  launchesPast(limit: $limit) {
+    mission_name
+    # format me using the right click context menu
+              launch_date_local
+    launch_site {
+      site_name_long
+    }
+    links {
+      article_link
+      video_link
+    }
   }
 }
 `,
@@ -78,8 +95,21 @@ const operationEditor = monaco.editor.create(
   document.getElementById('operation') as HTMLElement,
   {
     model,
+    automaticLayout: true,
   },
 );
+
+monaco.languages.graphql.graphqlDefaults.setFormattingOptions({
+  // TODO: get these types working properly
+  prettierConfig: {
+    printWith: 120,
+  },
+});
+
+monaco.languages.graphql.graphqlDefaults.setSchemaConfig({
+  // TODO: get these types working properly
+  uri: SCHEMA_URL,
+});
 
 /**
  * Basic Operation Exec Example
@@ -99,6 +129,7 @@ async function executeCurrentOp() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     });
+
     const resultText = await result.text();
     resultsEditor.setValue(JSON.stringify(JSON.parse(resultText), null, 2));
   } catch (err) {
@@ -135,3 +166,7 @@ resultsEditor.addAction(opAction);
 //     endColumn: 0,
 //   }],
 // );
+
+// operationEditor.onDidChangeModelContent(() => {
+//   // this is where
+// })

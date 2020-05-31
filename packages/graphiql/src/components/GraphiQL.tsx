@@ -1,5 +1,5 @@
 /**
- *  Copyright (c) 2019 GraphQL Contributors.
+ *  Copyright (c) 2020 GraphQL Contributors.
  *
  *  This source code is licensed under the MIT license found in the
  *  LICENSE file in the root directory of this source tree.
@@ -30,6 +30,7 @@ import { ToolbarGroup } from './ToolbarGroup';
 import { ToolbarMenu, ToolbarMenuItem } from './ToolbarMenu';
 import { QueryEditor } from './QueryEditor';
 import { VariableEditor } from './VariableEditor';
+import { HeaderEditor } from './HeaderEditor';
 import { ResultViewer } from './ResultViewer';
 import { DocExplorer } from './DocExplorer';
 import { QueryHistory } from './QueryHistory';
@@ -73,6 +74,11 @@ export type FetcherParams = {
   operationName: string;
   variables?: string;
 };
+
+export type FetcherOpts = {
+  headers?: { [key: string]: any };
+};
+
 export type FetcherResult =
   | {
       data: IntrospectionQuery;
@@ -82,6 +88,7 @@ export type FetcherResult =
 
 export type Fetcher = (
   graphQLParams: FetcherParams,
+  opts?: FetcherOpts,
 ) => Promise<FetcherResult> | Observable<FetcherResult>;
 
 type OnMouseMoveFn = Maybe<
@@ -94,14 +101,18 @@ export type GraphiQLProps = {
   schema?: GraphQLSchema;
   query?: string;
   variables?: string;
+  headers?: string;
   operationName?: string;
   response?: string;
   storage?: Storage;
   defaultQuery?: string;
   defaultVariableEditorOpen?: boolean;
+  defaultSecondaryEditorOpen?: boolean;
+  headerEditorEnabled?: boolean;
   onCopyQuery?: (query?: string) => void;
   onEditQuery?: (query?: string) => void;
   onEditVariables?: (value: string) => void;
+  onEditHeaders?: (value: string) => void;
   onEditOperationName?: (operationName: string) => void;
   onToggleDocs?: (docExplorerOpen: boolean) => void;
   getDefaultFieldNames?: GetDefaultFieldNamesFn;
@@ -116,12 +127,16 @@ export type GraphiQLState = {
   schema?: GraphQLSchema;
   query?: string;
   variables?: string;
+  headers?: string;
   operationName?: string;
   docExplorerOpen: boolean;
   response?: string;
   editorFlex: number;
-  variableEditorOpen: boolean;
-  variableEditorHeight: number;
+  secondaryEditorOpen: boolean;
+  secondaryEditorHeight: number;
+  variableEditorActive: boolean;
+  headerEditorActive: boolean;
+  headerEditorEnabled: boolean;
   historyPaneOpen: boolean;
   docExplorerWidth: number;
   isWaitingForResponse: boolean;
@@ -156,12 +171,15 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
   _storage: StorageAPI;
 
   codeMirrorSizer!: CodeMirrorSizer;
+  // Ensure the component is mounted to execute async setState
+  componentIsMounted: boolean;
 
   // refs
   docExplorerComponent: Maybe<DocExplorer>;
   graphiqlContainer: Maybe<HTMLDivElement>;
   resultComponent: Maybe<ResultViewer>;
   variableEditorComponent: Maybe<VariableEditor>;
+  headerEditorComponent: Maybe<HeaderEditor>;
   _queryHistory: Maybe<QueryHistory>;
   editorBarComponent: Maybe<HTMLDivElement>;
   queryEditorComponent: Maybe<QueryEditor>;
@@ -177,6 +195,9 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
 
     // Cache the storage instance
     this._storage = new StorageAPI(props.storage);
+
+    // Disable setState when the component is not mounted
+    this.componentIsMounted = false;
 
     // Determine the initial query to display.
     const query =
@@ -197,6 +218,12 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
         ? props.variables
         : this._storage.get('variables');
 
+    // Determine the initial headers to display.
+    const headers =
+      props.headers !== undefined
+        ? props.headers
+        : this._storage.get('headers');
+
     // Determine the initial operationName to use.
     const operationName =
       props.operationName !== undefined
@@ -215,24 +242,38 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
       docExplorerOpen = this._storage.get('docExplorerOpen') === 'true';
     }
 
-    // initial variable editor pane open
-    const variableEditorOpen =
-      props.defaultVariableEditorOpen !== undefined
-        ? props.defaultVariableEditorOpen
-        : Boolean(variables);
+    // initial secondary editor pane open
+    let secondaryEditorOpen;
+    if (props.defaultVariableEditorOpen !== undefined) {
+      secondaryEditorOpen = props.defaultVariableEditorOpen;
+    } else if (props.defaultSecondaryEditorOpen !== undefined) {
+      secondaryEditorOpen = props.defaultSecondaryEditorOpen;
+    } else {
+      secondaryEditorOpen = Boolean(variables || headers);
+    }
+
+    const headerEditorEnabled = props.headerEditorEnabled ?? false;
 
     // Initialize state
     this.state = {
       schema: props.schema,
       query,
       variables: variables as string,
+      headers: headers as string,
       operationName,
       docExplorerOpen,
       response: props.response,
       editorFlex: Number(this._storage.get('editorFlex')) || 1,
-      variableEditorOpen,
-      variableEditorHeight:
-        Number(this._storage.get('variableEditorHeight')) || 200,
+      secondaryEditorOpen,
+      secondaryEditorHeight:
+        Number(this._storage.get('secondaryEditorHeight')) || 200,
+      variableEditorActive:
+        this._storage.get('variableEditorActive') === 'true' ||
+        props.headerEditorEnabled
+          ? this._storage.get('headerEditorActive') !== 'true'
+          : secondaryEditorOpen && true,
+      headerEditorActive: this._storage.get('headerEditorActive') === 'true',
+      headerEditorEnabled,
       historyPaneOpen: this._storage.get('historyPaneOpen') === 'true' || false,
       docExplorerWidth:
         Number(this._storage.get('docExplorerWidth')) ||
@@ -251,6 +292,9 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
   }
 
   componentDidMount() {
+    // Allow async state changes
+    this.componentIsMounted = true;
+
     // Only fetch schema via introspection if a schema has not been
     // provided, including if `null` was provided.
     if (this.state.schema === undefined) {
@@ -268,6 +312,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
     let nextSchema = this.state.schema;
     let nextQuery = this.state.query;
     let nextVariables = this.state.variables;
+    let nextHeaders = this.state.headers;
     let nextOperationName = this.state.operationName;
     let nextResponse = this.state.response;
 
@@ -279,6 +324,9 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
     }
     if (nextProps.variables !== undefined) {
       nextVariables = nextProps.variables;
+    }
+    if (nextProps.headers !== undefined) {
+      nextHeaders = nextProps.headers;
     }
     if (nextProps.operationName !== undefined) {
       nextOperationName = nextProps.operationName;
@@ -321,6 +369,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
         schema: nextSchema,
         query: nextQuery,
         variables: nextVariables,
+        headers: nextHeaders,
         operationName: nextOperationName,
         response: nextResponse,
       },
@@ -342,6 +391,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
     this.codeMirrorSizer.updateSizes([
       this.queryEditorComponent,
       this.variableEditorComponent,
+      this.headerEditorComponent,
       this.resultComponent,
     ]);
   }
@@ -349,19 +399,33 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
   // When the component is about to unmount, store any persistable state, such
   // that when the component is remounted, it will use the last used values.
   componentWillUnmount() {
+    // Deny async state changes
+    this.componentIsMounted = false;
+
     if (this.state.query) {
       this._storage.set('query', this.state.query);
     }
     if (this.state.variables) {
       this._storage.set('variables', this.state.variables);
     }
+    if (this.state.headers) {
+      this._storage.set('headers', this.state.headers);
+    }
     if (this.state.operationName) {
       this._storage.set('operationName', this.state.operationName);
     }
     this._storage.set('editorFlex', JSON.stringify(this.state.editorFlex));
     this._storage.set(
-      'variableEditorHeight',
-      JSON.stringify(this.state.variableEditorHeight),
+      'secondaryEditorHeight',
+      JSON.stringify(this.state.secondaryEditorHeight),
+    );
+    this._storage.set(
+      'variableEditorActive',
+      JSON.stringify(this.state.variableEditorActive),
+    );
+    this._storage.set(
+      'headerEditorActive',
+      JSON.stringify(this.state.headerEditorActive),
     );
     this._storage.set(
       'docExplorerWidth',
@@ -376,6 +440,12 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
       JSON.stringify(this.state.historyPaneOpen),
     );
   }
+
+  // Use it when the state change is async
+  // TODO: Annotate correctly this function
+  safeSetState = (nextState: any, callback?: any): void => {
+    this.componentIsMounted && this.setState(nextState, callback);
+  };
 
   render() {
     const children = React.Children.toArray(this.props.children);
@@ -434,9 +504,11 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
       zIndex: 7,
     };
 
-    const variableOpen = this.state.variableEditorOpen;
-    const variableStyle = {
-      height: variableOpen ? this.state.variableEditorHeight : undefined,
+    const secondaryEditorOpen = this.state.secondaryEditorOpen;
+    const secondaryEditorStyle = {
+      height: secondaryEditorOpen
+        ? this.state.secondaryEditorHeight
+        : undefined,
     };
 
     return (
@@ -510,17 +582,43 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
                 readOnly={this.props.readOnly}
               />
               <section
-                className="variable-editor"
-                style={variableStyle}
-                aria-label="Query Variables">
+                className="variable-editor secondary-editor"
+                style={secondaryEditorStyle}
+                aria-label={
+                  this.state.variableEditorActive
+                    ? 'Query Variables'
+                    : 'Request Headers'
+                }>
                 <div
-                  className="variable-editor-title"
-                  id="variable-editor-title"
+                  className="secondary-editor-title variable-editor-title"
+                  id="secondary-editor-title"
                   style={{
-                    cursor: variableOpen ? 'row-resize' : 'n-resize',
+                    cursor: secondaryEditorOpen ? 'row-resize' : 'n-resize',
                   }}
-                  onMouseDown={this.handleVariableResizeStart}>
-                  {'Query Variables'}
+                  onMouseDown={this.handleSecondaryEditorResizeStart}>
+                  <div
+                    style={{
+                      cursor: 'pointer',
+                      color: this.state.variableEditorActive ? '#000' : 'gray',
+                      display: 'inline-block',
+                    }}
+                    onClick={this.handleOpenVariableEditorTab}
+                    onMouseDown={this.handleTabClickPropogation}>
+                    {'Query Variables'}
+                  </div>
+                  {this.state.headerEditorEnabled && (
+                    <div
+                      style={{
+                        cursor: 'pointer',
+                        color: this.state.headerEditorActive ? '#000' : 'gray',
+                        display: 'inline-block',
+                        marginLeft: '20px',
+                      }}
+                      onClick={this.handleOpenHeaderEditorTab}
+                      onMouseDown={this.handleTabClickPropogation}>
+                      {'Request Headers'}
+                    </div>
+                  )}
                 </div>
                 <VariableEditor
                   ref={n => {
@@ -535,7 +633,24 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
                   onRunQuery={this.handleEditorRunQuery}
                   editorTheme={this.props.editorTheme}
                   readOnly={this.props.readOnly}
+                  active={this.state.variableEditorActive}
                 />
+                {this.state.headerEditorEnabled && (
+                  <HeaderEditor
+                    ref={n => {
+                      this.headerEditorComponent = n;
+                    }}
+                    value={this.state.headers}
+                    onEdit={this.handleEditHeaders}
+                    onHintInformationRender={this.handleHintInformationRender}
+                    onPrettifyQuery={this.handlePrettifyQuery}
+                    onMergeQuery={this.handleMergeQuery}
+                    onRunQuery={this.handleEditorRunQuery}
+                    editorTheme={this.props.editorTheme}
+                    readOnly={this.props.readOnly}
+                    active={this.state.headerEditorActive}
+                  />
+                )}
               </section>
             </div>
             <div className="resultWrap">
@@ -591,6 +706,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
   static Footer = GraphiQLFooter;
   static QueryEditor = QueryEditor;
   static VariableEditor = VariableEditor;
+  static HeaderEditor = HeaderEditor;
   static ResultViewer = ResultViewer;
 
   // Add a button to the Toolbar.
@@ -633,6 +749,18 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
   }
 
   /**
+   * Get the header editor CodeMirror instance.
+   *
+   * @public
+   */
+  public getHeaderEditor() {
+    if (this.headerEditorComponent) {
+      return this.headerEditorComponent.getCodeMirror();
+    }
+    return null;
+  }
+
+  /**
    * Refresh all CodeMirror instances.
    *
    * @public
@@ -643,6 +771,9 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
     }
     if (this.variableEditorComponent) {
       this.variableEditorComponent.getCodeMirror().refresh();
+    }
+    if (this.headerEditorComponent) {
+      this.headerEditorComponent.getCodeMirror().refresh();
     }
     if (this.resultComponent) {
       this.resultComponent.getCodeMirror().refresh();
@@ -745,11 +876,11 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
         if (typeof result !== 'string' && 'data' in result) {
           const schema = buildClientSchema(result.data);
           const queryFacts = getQueryFacts(schema, this.state.query);
-          this.setState({ schema, ...queryFacts });
+          this.safeSetState({ schema, ...queryFacts });
         } else {
           const responseString =
             typeof result === 'string' ? result : GraphiQL.formatResult(result);
-          this.setState({
+          this.safeSetState({
             // Set schema to `null` to explicitly indicate that no schema exists.
             schema: undefined,
             response: responseString,
@@ -757,7 +888,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
         }
       })
       .catch(error => {
-        this.setState({
+        this.safeSetState({
           schema: undefined,
           response: error ? GraphiQL.formatError(error) : undefined,
         });
@@ -767,11 +898,13 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
   private _fetchQuery(
     query: string,
     variables: string,
+    headers: string,
     operationName: string,
     cb: (value: FetcherResult) => any,
   ) {
     const fetcher = this.props.fetcher;
     let jsonVariables = null;
+    let jsonHeaders = null;
 
     try {
       jsonVariables =
@@ -784,17 +917,31 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
       throw new Error('Variables are not a JSON object.');
     }
 
-    const fetch = fetcher({
-      query,
-      variables: jsonVariables,
-      operationName,
-    });
+    try {
+      jsonHeaders =
+        headers && headers.trim() !== '' ? JSON.parse(headers) : null;
+    } catch (error) {
+      throw new Error(`Headers are invalid JSON: ${error.message}.`);
+    }
+
+    if (typeof jsonHeaders !== 'object') {
+      throw new Error('Headers are not a JSON object.');
+    }
+
+    const fetch = fetcher(
+      {
+        query,
+        variables: jsonVariables,
+        operationName,
+      },
+      { headers: jsonHeaders },
+    );
 
     if (isPromise(fetch)) {
       // If fetcher returned a Promise, then call the callback when the promise
       // resolves, otherwise handle the error.
       fetch.then(cb).catch(error => {
-        this.setState({
+        this.safeSetState({
           isWaitingForResponse: false,
           response: error ? GraphiQL.formatError(error) : undefined,
         });
@@ -806,14 +953,14 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
       const subscription = fetch.subscribe({
         next: cb,
         error: (error: Error) => {
-          this.setState({
+          this.safeSetState({
             isWaitingForResponse: false,
             response: error ? GraphiQL.formatError(error) : undefined,
             subscription: null,
           });
         },
         complete: () => {
-          this.setState({
+          this.safeSetState({
             isWaitingForResponse: false,
             subscription: null,
           });
@@ -843,6 +990,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
     // the current query from the editor.
     const editedQuery = this.autoCompleteLeafs() || this.state.query;
     const variables = this.state.variables;
+    const headers = this.state.headers;
     let operationName = this.state.operationName;
 
     // If an operation was explicitly provided, different from the current
@@ -860,13 +1008,19 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
       });
 
       if (this._queryHistory) {
-        this._queryHistory.updateHistory(editedQuery, variables, operationName);
+        this._queryHistory.updateHistory(
+          editedQuery,
+          variables,
+          headers,
+          operationName,
+        );
       }
 
       // _fetchQuery may return a subscription.
       const subscription = this._fetchQuery(
         editedQuery as string,
         variables as string,
+        headers as string,
         operationName as string,
         (result: FetcherResult) => {
           if (queryID === this._editorQueryID) {
@@ -950,6 +1104,22 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
       );
       if (prettifiedVariableEditorContent !== variableEditorContent) {
         variableEditor?.setValue(prettifiedVariableEditorContent);
+      }
+    } catch {
+      /* Parsing JSON failed, skip prettification */
+    }
+
+    const headerEditor = this.getHeaderEditor();
+    const headerEditorContent = headerEditor?.getValue() ?? '';
+
+    try {
+      const prettifiedHeaderEditorContent = JSON.stringify(
+        JSON.parse(headerEditorContent),
+        null,
+        2,
+      );
+      if (prettifiedHeaderEditorContent !== headerEditorContent) {
+        headerEditor?.setValue(prettifiedHeaderEditorContent);
       }
     } catch {
       /* Parsing JSON failed, skip prettification */
@@ -1038,6 +1208,13 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
     }
   };
 
+  handleEditHeaders = (value: string) => {
+    this.setState({ headers: value });
+    if (this.props.onEditHeaders) {
+      this.props.onEditHeaders(value);
+    }
+  };
+
   handleEditOperationName = (operationName: string) => {
     const onEditOperationName = this.props.onEditOperationName;
     if (onEditOperationName) {
@@ -1102,6 +1279,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
   handleSelectHistoryQuery = (
     query?: string,
     variables?: string,
+    headers?: string,
     operationName?: string,
   ) => {
     if (query) {
@@ -1109,6 +1287,9 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
     }
     if (variables) {
       this.handleEditVariables(variables);
+    }
+    if (headers) {
+      this.handleEditHeaders(headers);
     }
     if (operationName) {
       this.handleEditOperationName(operationName);
@@ -1219,14 +1400,42 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
     });
   };
 
-  private handleVariableResizeStart: MouseEventHandler<
+  // Prevent clicking on the tab button from propagating to the resizer.
+  private handleTabClickPropogation: MouseEventHandler<
+    HTMLDivElement
+  > = downEvent => {
+    downEvent.preventDefault();
+    downEvent.stopPropagation();
+  };
+
+  private handleOpenHeaderEditorTab: MouseEventHandler<
+    HTMLDivElement
+  > = _clickEvent => {
+    this.setState({
+      headerEditorActive: true,
+      variableEditorActive: false,
+      secondaryEditorOpen: true,
+    });
+  };
+
+  private handleOpenVariableEditorTab: MouseEventHandler<
+    HTMLDivElement
+  > = _clickEvent => {
+    this.setState({
+      headerEditorActive: false,
+      variableEditorActive: true,
+      secondaryEditorOpen: true,
+    });
+  };
+
+  private handleSecondaryEditorResizeStart: MouseEventHandler<
     HTMLDivElement
   > = downEvent => {
     downEvent.preventDefault();
 
     let didMove = false;
-    const wasOpen = this.state.variableEditorOpen;
-    const hadHeight = this.state.variableEditorHeight;
+    const wasOpen = this.state.secondaryEditorOpen;
+    const hadHeight = this.state.secondaryEditorHeight;
     const offset = downEvent.clientY - getTop(downEvent.target as HTMLElement);
 
     let onMouseMove: OnMouseMoveFn = moveEvent => {
@@ -1241,20 +1450,20 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
       const bottomSize = editorBar.clientHeight - topSize;
       if (bottomSize < 60) {
         this.setState({
-          variableEditorOpen: false,
-          variableEditorHeight: hadHeight,
+          secondaryEditorOpen: false,
+          secondaryEditorHeight: hadHeight,
         });
       } else {
         this.setState({
-          variableEditorOpen: true,
-          variableEditorHeight: bottomSize,
+          secondaryEditorOpen: true,
+          secondaryEditorHeight: bottomSize,
         });
       }
     };
 
     let onMouseUp: OnMouseUpFn = () => {
       if (!didMove) {
-        this.setState({ variableEditorOpen: !wasOpen });
+        this.setState({ secondaryEditorOpen: !wasOpen });
       }
 
       document.removeEventListener('mousemove', onMouseMove!);

@@ -23,9 +23,10 @@
   },
   "references": [
     {
-      "path": "../graphql-languageservice"
+      "path": "../graphql-language-service"
     }
   ],
+  "include": ["src"],
   "exclude": [
     "**/__tests__/**",
     "**/*.spec.*",

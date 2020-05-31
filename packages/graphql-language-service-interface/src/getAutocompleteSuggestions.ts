@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  *  Copyright (c) 2019 GraphQL Contributors
  *  All rights reserved.
@@ -16,14 +15,12 @@ import {
   GraphQLType,
   GraphQLCompositeType,
   GraphQLEnumValue,
-  Kind,
-  KindEnum,
+  GraphQLField,
+  GraphQLFieldMap,
 } from 'graphql';
 
 import {
   CompletionItem,
-  ContextToken,
-  State,
   AllTypeInfo,
   Position,
 } from 'graphql-language-service-types';
@@ -48,7 +45,8 @@ import {
 import {
   CharacterStream,
   onlineParser,
-  RuleKind,
+  ContextToken,
+  State,
   RuleKinds,
 } from 'graphql-language-service-parser';
 
@@ -84,7 +82,7 @@ export function getAutocompleteSuggestions(
   const step = state.step;
   const typeInfo = getTypeInfo(schema, token.state);
   // Definition kinds
-  if (kind === 'Document') {
+  if (kind === RuleKinds.DOCUMENT) {
     return hintList(token, [
       { label: 'query', kind: CompletionItemKind.Function },
       { label: 'mutation', kind: CompletionItemKind.Function },
@@ -115,7 +113,7 @@ export function getAutocompleteSuggestions(
         argDefs.map(argDef => ({
           label: argDef.name,
           detail: String(argDef.type),
-          documentation: argDef.description,
+          documentation: argDef.description ?? undefined,
           kind: CompletionItemKind.Variable,
         })),
       );
@@ -123,11 +121,14 @@ export function getAutocompleteSuggestions(
   }
 
   // Input Object fields
-  if (kind === 'ObjectValue' || (kind === 'ObjectField' && step === 0)) {
+  if (
+    kind === RuleKinds.OBJECT_VALUE ||
+    (kind === RuleKinds.OBJECT_FIELD && step === 0)
+  ) {
     if (typeInfo.objectFieldDefs) {
       const objectFields = objectValues(typeInfo.objectFieldDefs);
       const completionKind =
-        kind === 'ObjectValue'
+        kind === RuleKinds.OBJECT_VALUE
           ? CompletionItemKind.Value
           : CompletionItemKind.Field;
       return hintList(
@@ -135,7 +136,7 @@ export function getAutocompleteSuggestions(
         objectFields.map(field => ({
           label: field.name,
           detail: String(field.type),
-          documentation: field.description,
+          documentation: field.description ?? undefined,
           kind: completionKind,
         })),
       );
@@ -144,20 +145,20 @@ export function getAutocompleteSuggestions(
 
   // Input values: Enum and Boolean
   if (
-    kind === 'EnumValue' ||
-    (kind === 'ListValue' && step === 1) ||
-    (kind === 'ObjectField' && step === 2) ||
-    (kind === 'Argument' && step === 2)
+    kind === RuleKinds.ENUM_VALUE ||
+    (kind === RuleKinds.LIST_VALUE && step === 1) ||
+    (kind === RuleKinds.OBJECT_FIELD && step === 2) ||
+    (kind === RuleKinds.ARGUMENT && step === 2)
   ) {
     return getSuggestionsForInputValues(token, typeInfo, kind);
   }
 
   // Fragment type conditions
   if (
-    (kind === 'TypeCondition' && step === 1) ||
-    (kind === 'NamedType' &&
+    (kind === RuleKinds.TYPE_CONDITION && step === 1) ||
+    (kind === RuleKinds.NAMED_TYPE &&
       state.prevState != null &&
-      state.prevState.kind === 'TypeCondition')
+      state.prevState.kind === RuleKinds.TYPE_CONDITION)
   ) {
     return getSuggestionsForFragmentTypeConditions(
       token,
@@ -168,7 +169,7 @@ export function getAutocompleteSuggestions(
   }
 
   // Fragment spread names
-  if (kind === 'FragmentSpread' && step === 1) {
+  if (kind === RuleKinds.FRAGMENT_SPREAD && step === 1) {
     return getSuggestionsForFragmentSpread(
       token,
       typeInfo,
@@ -180,18 +181,18 @@ export function getAutocompleteSuggestions(
 
   // Variable definition types
   if (
-    (kind === 'VariableDefinition' && step === 2) ||
-    (kind === 'ListType' && step === 1) ||
-    (kind === 'NamedType' &&
+    (kind === RuleKinds.VARIABLE_DEFINITION && step === 2) ||
+    (kind === RuleKinds.LIST_TYPE && step === 1) ||
+    (kind === RuleKinds.NAMED_TYPE &&
       state.prevState &&
-      (state.prevState.kind === 'VariableDefinition' ||
-        state.prevState.kind === 'ListType'))
+      (state.prevState.kind === RuleKinds.VARIABLE_DEFINITION ||
+        state.prevState.kind === RuleKinds.LIST_TYPE))
   ) {
     return getSuggestionsForVariableDefinition(token, schema, kind);
   }
 
   // Directive names
-  if (kind === 'Directive') {
+  if (kind === RuleKinds.DIRECTIVE) {
     return getSuggestionsForDirective(token, state, schema, kind);
   }
 
@@ -203,12 +204,19 @@ function getSuggestionsForFieldNames(
   token: ContextToken,
   typeInfo: AllTypeInfo,
   schema: GraphQLSchema,
-  kind: RuleKind.SelectionSet | RuleKind.Field | RuleKind.AliasedField,
+  // kind: RuleKind.SelectionSet | RuleKind.Field | RuleKind.AliasedField,
+  _kind: string,
 ): Array<CompletionItem> {
   if (typeInfo.parentType) {
     const parentType = typeInfo.parentType;
-    const fields =
-      'getFields' in parentType ? objectValues(parentType.getFields()) : [];
+    let fields: GraphQLField<null, null>[] = [];
+    if ('getFields' in parentType) {
+      fields = objectValues<GraphQLField<null, null>>(
+        // TODO: getFields returns `GraphQLFieldMap<any, any> | GraphQLInputFieldMap`
+        parentType.getFields() as GraphQLFieldMap<any, any>,
+      );
+    }
+
     if (isCompositeType(parentType)) {
       fields.push(TypeNameMetaFieldDef);
     }
@@ -217,12 +225,12 @@ function getSuggestionsForFieldNames(
     }
     return hintList(
       token,
-      fields.map((field, index) => ({
+      fields.map<CompletionItem>((field, index) => ({
         // This will sort the fields in the same order they are listed in the schema
         sortText: String(index) + field.name,
         label: field.name,
         detail: String(field.type),
-        documentation: field.description,
+        documentation: field.description ?? undefined,
         deprecated: field.isDeprecated,
         isDeprecated: field.isDeprecated,
         deprecationReason: field.deprecationReason,
@@ -236,18 +244,18 @@ function getSuggestionsForFieldNames(
 function getSuggestionsForInputValues(
   token: ContextToken,
   typeInfo: AllTypeInfo,
-  kind: string,
+  _kind: string,
 ): CompletionItem[] {
   const namedInputType = getNamedType(typeInfo.inputType as GraphQLType);
   if (namedInputType instanceof GraphQLEnumType) {
-    const values: GraphQLEnumValues[] = namedInputType.getValues();
+    const values: GraphQLEnumValue[] = namedInputType.getValues();
     return hintList(
       token,
       values.map(
         (value: GraphQLEnumValue): CompletionItem => ({
           label: value.name,
           detail: String(namedInputType),
-          documentation: value.description,
+          documentation: value.description ?? undefined,
           deprecated: value.isDeprecated,
           isDeprecated: value.isDeprecated,
           deprecationReason: value.deprecationReason,
@@ -280,7 +288,8 @@ function getSuggestionsForFragmentTypeConditions(
   token: ContextToken,
   typeInfo: AllTypeInfo,
   schema: GraphQLSchema,
-  kind: Kind.TypeCondition | Kind.NamedType,
+  // TODO: Kind.TypeCondition | Kind.NamedType,
+  _kind: string,
 ): Array<CompletionItem> {
   let possibleTypes: GraphQLType[];
   if (typeInfo.parentType) {
@@ -323,7 +332,7 @@ function getSuggestionsForFragmentSpread(
   typeInfo: AllTypeInfo,
   schema: GraphQLSchema,
   queryText: string,
-  kind: string,
+  _kind: string,
 ): Array<CompletionItem> {
   const typeMap = schema.getTypeMap();
   const defState = getDefinitionState(token.state);
@@ -337,7 +346,7 @@ function getSuggestionsForFragmentSpread(
       // Only include fragments which are not cyclic.
       !(
         defState &&
-        defState.kind === 'FragmentDefinition' &&
+        defState.kind === RuleKinds.FRAGMENT_DEFINITION &&
         defState.name === frag.name.value
       ) &&
       // Only include fragments which could possibly be spread here.
@@ -366,21 +375,25 @@ export function getFragmentDefinitions(
 ): Array<FragmentDefinitionNode> {
   const fragmentDefs: FragmentDefinitionNode[] = [];
   runOnlineParser(queryText, (_, state: State) => {
-    if (state.kind === 'FragmentDefinition' && state.name && state.type) {
+    if (
+      state.kind === RuleKinds.FRAGMENT_DEFINITION &&
+      state.name &&
+      state.type
+    ) {
       fragmentDefs.push({
-        kind: 'FragmentDefinition',
+        kind: RuleKinds.FRAGMENT_DEFINITION,
         name: {
           kind: 'Name',
           value: state.name,
         },
 
         selectionSet: {
-          kind: 'SelectionSet',
+          kind: RuleKinds.SELECTION_SET,
           selections: [],
         },
 
         typeCondition: {
-          kind: 'NamedType',
+          kind: RuleKinds.NAMED_TYPE,
           name: {
             kind: 'Name',
             value: state.type,
@@ -396,7 +409,7 @@ export function getFragmentDefinitions(
 function getSuggestionsForVariableDefinition(
   token: ContextToken,
   schema: GraphQLSchema,
-  kind: string,
+  _kind: string,
 ): Array<CompletionItem> {
   const inputTypeMap = schema.getTypeMap();
   const inputTypes = objectValues(inputTypeMap).filter(isInputType);
@@ -415,7 +428,7 @@ function getSuggestionsForDirective(
   token: ContextToken,
   state: State,
   schema: GraphQLSchema,
-  kind: string,
+  _kind: string,
 ): Array<CompletionItem> {
   if (state.prevState && state.prevState.kind) {
     const directives = schema
@@ -525,47 +538,47 @@ export function canUseDirective(
   const kind = state.kind;
   const locations = directive.locations;
   switch (kind) {
-    case 'Query':
+    case RuleKinds.QUERY:
       return locations.indexOf('QUERY') !== -1;
-    case 'Mutation':
+    case RuleKinds.MUTATION:
       return locations.indexOf('MUTATION') !== -1;
-    case 'Subscription':
+    case RuleKinds.SUBSCRIPTION:
       return locations.indexOf('SUBSCRIPTION') !== -1;
-    case 'Field':
-    case 'AliasedField':
+    case RuleKinds.FIELD:
+    case RuleKinds.ALIASED_FIELD:
       return locations.indexOf('FIELD') !== -1;
-    case 'FragmentDefinition':
+    case RuleKinds.FRAGMENT_DEFINITION:
       return locations.indexOf('FRAGMENT_DEFINITION') !== -1;
-    case 'FragmentSpread':
+    case RuleKinds.FRAGMENT_SPREAD:
       return locations.indexOf('FRAGMENT_SPREAD') !== -1;
-    case 'InlineFragment':
+    case RuleKinds.INLINE_FRAGMENT:
       return locations.indexOf('INLINE_FRAGMENT') !== -1;
 
     // Schema Definitions
-    case 'SchemaDef':
+    case RuleKinds.SCHEMA_DEF:
       return locations.indexOf('SCHEMA') !== -1;
-    case 'ScalarDef':
+    case RuleKinds.SCALAR_DEF:
       return locations.indexOf('SCALAR') !== -1;
-    case 'ObjectTypeDef':
+    case RuleKinds.OBJECT_TYPE_DEF:
       return locations.indexOf('OBJECT') !== -1;
-    case 'FieldDef':
+    case RuleKinds.FIELD_DEF:
       return locations.indexOf('FIELD_DEFINITION') !== -1;
-    case 'InterfaceDef':
+    case RuleKinds.INTERFACE_DEF:
       return locations.indexOf('INTERFACE') !== -1;
-    case 'UnionDef':
+    case RuleKinds.UNION_DEF:
       return locations.indexOf('UNION') !== -1;
-    case 'EnumDef':
+    case RuleKinds.ENUM_DEF:
       return locations.indexOf('ENUM') !== -1;
-    case 'EnumValue':
+    case RuleKinds.ENUM_VALUE:
       return locations.indexOf('ENUM_VALUE') !== -1;
-    case 'InputDef':
+    case RuleKinds.INPUT_DEF:
       return locations.indexOf('INPUT_OBJECT') !== -1;
-    case 'InputValueDef':
+    case RuleKinds.INPUT_VALUE_DEF:
       const prevStateKind = state.prevState && state.prevState.kind;
       switch (prevStateKind) {
-        case 'ArgumentsDef':
+        case RuleKinds.ARGUMENTS_DEF:
           return locations.indexOf('ARGUMENT_DEFINITION') !== -1;
-        case 'InputDef':
+        case RuleKinds.INPUT_DEF:
           return locations.indexOf('INPUT_FIELD_DEFINITION') !== -1;
       }
   }
@@ -591,24 +604,24 @@ export function getTypeInfo(
 
   forEachState(tokenState, state => {
     switch (state.kind) {
-      case 'Query':
+      case RuleKinds.QUERY:
       case 'ShortQuery':
         type = schema.getQueryType();
         break;
-      case 'Mutation':
+      case RuleKinds.MUTATION:
         type = schema.getMutationType();
         break;
-      case 'Subscription':
+      case RuleKinds.SUBSCRIPTION:
         type = schema.getSubscriptionType();
         break;
-      case 'InlineFragment':
-      case 'FragmentDefinition':
+      case RuleKinds.INLINE_FRAGMENT:
+      case RuleKinds.FRAGMENT_DEFINITION:
         if (state.type) {
           type = schema.getType(state.type);
         }
         break;
-      case 'Field':
-      case 'AliasedField':
+      case RuleKinds.FIELD:
+      case RuleKinds.ALIASED_FIELD:
         if (!type || !state.name) {
           fieldDef = null;
         } else {
@@ -618,24 +631,24 @@ export function getTypeInfo(
           type = fieldDef ? fieldDef.type : null;
         }
         break;
-      case 'SelectionSet':
+      case RuleKinds.SELECTION_SET:
         parentType = getNamedType(type as GraphQLType);
         break;
-      case 'Directive':
+      case RuleKinds.DIRECTIVE:
         directiveDef = state.name ? schema.getDirective(state.name) : null;
         break;
-      case 'Arguments':
+      case RuleKinds.ARGUMENTS:
         if (!state.prevState) {
           argDefs = null;
         } else {
           switch (state.prevState.kind) {
-            case 'Field':
+            case RuleKinds.FIELD:
               argDefs = fieldDef && fieldDef.args;
               break;
-            case 'Directive':
+            case RuleKinds.DIRECTIVE:
               argDefs = directiveDef && directiveDef.args;
               break;
-            case 'AliasedField':
+            case RuleKinds.ALIASED_FIELD:
               const name = state.prevState && state.prevState.name;
               if (!name) {
                 argDefs = null;
@@ -656,7 +669,7 @@ export function getTypeInfo(
           }
         }
         break;
-      case 'Argument':
+      case RuleKinds.ARGUMENT:
         if (argDefs) {
           for (let i = 0; i < argDefs.length; i++) {
             if (argDefs[i].name === state.name) {
@@ -667,7 +680,7 @@ export function getTypeInfo(
         }
         inputType = argDef && argDef.type;
         break;
-      case 'EnumValue':
+      case RuleKinds.ENUM_VALUE:
         const enumType = getNamedType(inputType as GraphQLType);
         enumValue =
           enumType instanceof GraphQLEnumType
@@ -677,24 +690,24 @@ export function getTypeInfo(
               )
             : null;
         break;
-      case 'ListValue':
+      case RuleKinds.LIST_VALUE:
         const nullableType = getNullableType(inputType as GraphQLType);
         inputType =
           nullableType instanceof GraphQLList ? nullableType.ofType : null;
         break;
-      case 'ObjectValue':
+      case RuleKinds.OBJECT_VALUE:
         const objectType = getNamedType(inputType as GraphQLType);
         objectFieldDefs =
           objectType instanceof GraphQLInputObjectType
             ? objectType.getFields()
             : null;
         break;
-      case 'ObjectField':
+      case RuleKinds.OBJECT_FIELD:
         const objectField =
           state.name && objectFieldDefs ? objectFieldDefs[state.name] : null;
         inputType = objectField && objectField.type;
         break;
-      case 'NamedType':
+      case RuleKinds.NAMED_TYPE:
         if (state.name) {
           type = schema.getType(state.name);
         }

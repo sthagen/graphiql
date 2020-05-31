@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-alpha.11](https://github.com/graphql/graphiql/compare/example-graphiql-webpack@1.0.0-alpha.10...example-graphiql-webpack@1.0.0-alpha.11) (2020-05-28)
+
+**Note:** Version bump only for package example-graphiql-webpack
+
+# [1.0.0-alpha.10](https://github.com/graphql/graphiql/compare/example-graphiql-webpack@1.0.0-alpha.9...example-graphiql-webpack@1.0.0-alpha.10) (2020-05-19)
+
+**Note:** Version bump only for package example-graphiql-webpack
+
+# [1.0.0-alpha.9](https://github.com/graphql/graphiql/compare/example-graphiql-webpack@1.0.0-alpha.8...example-graphiql-webpack@1.0.0-alpha.9) (2020-05-17)
+
+### Features
+
+- introduce proper vscode completion kinds ([#1488](https://github.com/graphql/graphiql/issues/1488)) ([f19aa0d](https://github.com/graphql/graphiql/commit/f19aa0ddde6109526c101c8a487f43bbb8238394))
+
 # [1.0.0-alpha.8](https://github.com/graphql/graphiql/compare/example-graphiql-webpack@1.0.0-alpha.7...example-graphiql-webpack@1.0.0-alpha.8) (2020-04-10)
 
 **Note:** Version bump only for package example-graphiql-webpack

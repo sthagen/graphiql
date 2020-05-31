@@ -3,6 +3,34 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-alpha.11](https://github.com/graphql/graphiql/compare/graphiql@1.0.0-alpha.10...graphiql@1.0.0-alpha.11) (2020-05-28)
+
+### Bug Fixes
+
+- Safe setState ([#1547](https://github.com/graphql/graphiql/issues/1547)) ([f85969c](https://github.com/graphql/graphiql/commit/f85969c7e77e8fd269e026be36cc5065d6d33237))
+- trigger edit variables on first render ([#1545](https://github.com/graphql/graphiql/issues/1545)) ([e54e1a8](https://github.com/graphql/graphiql/commit/e54e1a8691483f1d336231314130d9822481b3be))
+
+### Features
+
+- Add Headers Editor to GraphiQL ([#1543](https://github.com/graphql/graphiql/issues/1543)) ([3faa1ac](https://github.com/graphql/graphiql/commit/3faa1ac46514252e90abf2b2bda0841edf6115ea))
+
+# [1.0.0-alpha.10](https://github.com/graphql/graphiql/compare/graphiql@1.0.0-alpha.9...graphiql@1.0.0-alpha.10) (2020-05-19)
+
+### Bug Fixes
+
+- graphiql non-relative import issues ([#1534](https://github.com/graphql/graphiql/issues/1534)) fixes [#1530](https://github.com/graphql/graphiql/issues/1530) ([0ac9fa0](https://github.com/graphql/graphiql/commit/0ac9fa0a8dcdf8464c8ce31c487ebcfd6b9536a8))
+
+# [1.0.0-alpha.9](https://github.com/graphql/graphiql/compare/graphiql@1.0.0-alpha.8...graphiql@1.0.0-alpha.9) (2020-05-17)
+
+### Bug Fixes
+
+- remove problematic file resolution module from webpack sco… ([#1489](https://github.com/graphql/graphiql/issues/1489)) ([8dab038](https://github.com/graphql/graphiql/commit/8dab0385772f443f73b559e2c668080733168236))
+
+### Features
+
+- introduce proper vscode completion kinds ([#1488](https://github.com/graphql/graphiql/issues/1488)) ([f19aa0d](https://github.com/graphql/graphiql/commit/f19aa0ddde6109526c101c8a487f43bbb8238394))
+- Monaco Mode - Phase 2 - Mode & Worker ([#1459](https://github.com/graphql/graphiql/issues/1459)) ([bc95fb4](https://github.com/graphql/graphiql/commit/bc95fb46459a4437ff9471ff43c98e1c5c50f51e))
+
 # [1.0.0-alpha.8](https://github.com/graphql/graphiql/compare/graphiql@1.0.0-alpha.7...graphiql@1.0.0-alpha.8) (2020-04-10)
 
 **Note:** Version bump only for package graphiql

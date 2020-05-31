@@ -1,10 +1,10 @@
 {
   "name": "monaco-graphql",
   "description": "full service, official monaco mode for GraphQL",
-  "version": "2.3.4-alpha.5",
+  "version": "0.1.2",
   "main": "dist/monaco.contribution.js",
   "module": "esm/monaco.contribution.js",
-  "typings": "dist/typings/monaco.d.ts",
+  "typings": "src/typings/monaco.d.ts",
   "contributors": [
     {
       "name": "Peng Lyu",
@@ -15,13 +15,15 @@
       "url": "https://github.com/acao"
     }
   ],
+  "files": [
+    "dist",
+    "esm",
+    "src"
+  ],
   "dependencies": {
-    "@graphql-toolkit/module-loader": "0.9.9",
-    "graphql-language-service-utils": "^2.4.0-alpha.3",
-    "graphql-languageservice": "^2.4.0-alpha.5",
-    "monaco-languages": "^1.10.0",
-    "monaco-editor-core": "^0.20.0",
-    "vscode-languageserver-textdocument": "^1.0.1"
+    "graphql-language-service": "^3.0.0-alpha.2",
+    "graphql-language-service-utils": "^2.4.0-alpha.7",
+    "monaco-editor": "^0.20.0"
   },
   "devDependencies": {
     "vscode-languageserver-types": "3.15.1"

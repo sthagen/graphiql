@@ -21,8 +21,9 @@
   },
   "references": [
     {
-      "path": "../graphql-languageservice"
+      "path": "../graphql-language-service/tsconfig.esm.json"
     }
   ],
+  "include": ["./src"],
   "exclude": ["**/__tests__/**", "**/*.spec.*", "dist", "esm", "node_modules"]
 }
