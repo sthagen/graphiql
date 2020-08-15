@@ -30,6 +30,7 @@ import {
 import { parseDocument } from './parseDocument';
 import stringToHash from './stringToHash';
 import glob from 'glob';
+import { LoadConfigOptions } from './types';
 
 // Maximum files to read when processing GraphQL files.
 const MAX_READS = 200;
@@ -52,20 +53,26 @@ const {
   DIRECTIVE_DEFINITION,
 } = Kind;
 
-export async function getGraphQLCache(
-  configDir: Uri,
-  parser: typeof parseDocument,
-  extensions?: Array<(config: GraphQLConfig) => GraphQLConfig>,
-  config?: GraphQLConfig,
-): Promise<GraphQLCacheInterface> {
-  let graphQLConfig =
-    config ?? ((await loadConfig({ rootDir: configDir })) as GraphQLConfig);
-  if (extensions && extensions.length > 0) {
-    for await (const extension of extensions) {
-      graphQLConfig = await extension(graphQLConfig);
-    }
+export async function getGraphQLCache({
+  parser,
+  loadConfigOptions,
+  config,
+}: {
+  parser: typeof parseDocument;
+  loadConfigOptions: LoadConfigOptions;
+  config?: GraphQLConfig;
+}): Promise<GraphQLCacheInterface> {
+  let graphQLConfig;
+  if (config) {
+    graphQLConfig = config;
+  } else {
+    graphQLConfig = await loadConfig(loadConfigOptions);
   }
-  return new GraphQLCache(configDir, graphQLConfig, parser);
+  return new GraphQLCache({
+    configDir: loadConfigOptions.rootDir as string,
+    config: graphQLConfig as GraphQLConfig,
+    parser,
+  });
 }
 
 export class GraphQLCache implements GraphQLCacheInterface {
@@ -78,13 +85,17 @@ export class GraphQLCache implements GraphQLCacheInterface {
   _typeDefinitionsCache: Map<Uri, Map<string, ObjectTypeInfo>>;
   _parser: typeof parseDocument;
 
-  constructor(
-    configDir: Uri,
-    graphQLConfig: GraphQLConfig,
-    parser: typeof parseDocument,
-  ) {
+  constructor({
+    configDir,
+    config,
+    parser,
+  }: {
+    configDir: Uri;
+    config: GraphQLConfig;
+    parser: typeof parseDocument;
+  }) {
     this._configDir = configDir;
-    this._graphQLConfig = graphQLConfig;
+    this._graphQLConfig = config;
     this._graphQLFileListCache = new Map();
     this._schemaMap = new Map();
     this._fragmentDefinitionsCache = new Map();
@@ -181,11 +192,7 @@ export class GraphQLCache implements GraphQLCacheInterface {
 
     const filesFromInputDirs = await this._readFilesFromInputDirs(
       rootDir,
-      projectConfig.include instanceof Array
-        ? projectConfig.include
-        : projectConfig.include
-        ? [projectConfig.include]
-        : [],
+      projectConfig.documents,
     );
     const list = filesFromInputDirs.filter(fileInfo =>
       projectConfig.match(fileInfo.filePath),
@@ -296,11 +303,7 @@ export class GraphQLCache implements GraphQLCacheInterface {
     }
     const filesFromInputDirs = await this._readFilesFromInputDirs(
       rootDir,
-      projectConfig.include instanceof Array
-        ? projectConfig.include
-        : projectConfig.include
-        ? [projectConfig.include]
-        : [],
+      projectConfig.documents,
     );
     const list = filesFromInputDirs.filter(fileInfo =>
       projectConfig.match(fileInfo.filePath),
@@ -317,21 +320,24 @@ export class GraphQLCache implements GraphQLCacheInterface {
 
   _readFilesFromInputDirs = (
     rootDir: string,
-    includes: string[],
+    documents: GraphQLProjectConfig['documents'],
   ): Promise<Array<GraphQLFileMetadata>> => {
     let pattern: string;
 
-    if (includes.length === 0) {
+    if (!documents || documents.length === 0) {
       return Promise.resolve([]);
     }
 
     // See https://github.com/graphql/graphql-language-service/issues/221
     // for details on why special handling is required here for the
-    // includes.length === 1 case.
-    if (includes.length === 1) {
-      pattern = includes[0];
+    // documents.length === 1 case.
+    if (typeof documents === 'string') {
+      pattern = documents;
+    } else if (documents.length === 1) {
+      // @ts-ignore
+      pattern = documents[0];
     } else {
-      pattern = `{${includes.join(',')}}`;
+      pattern = `{${documents.join(',')}}`;
     }
 
     return new Promise((resolve, reject) => {
@@ -368,9 +374,7 @@ export class GraphQLCache implements GraphQLCacheInterface {
               // so we have to force this here
               // becase glob's DefinatelyTyped doesn't use fs.Stats here though
               // the docs indicate that is what's there :shrug:
-              const cacheEntry: fs.Stats = globResult.statCache[
-                filePath
-              ] as fs.Stats;
+              const cacheEntry = globResult.statCache[filePath] as fs.Stats;
               return {
                 filePath,
                 mtime: Math.trunc(cacheEntry.mtime.getTime() / 1000),

@@ -103,7 +103,8 @@ const { argv } = yargs
 const command = argv._.pop();
 
 if (!command) {
-  throw Error('no command supplied');
+  process.stdout.write('no command supplied');
+  process.exit(0);
 }
 
 switch (command) {

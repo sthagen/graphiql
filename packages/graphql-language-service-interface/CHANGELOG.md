@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.4.2-alpha.1](https://github.com/graphql/graphiql/compare/graphql-language-service-interface@2.4.2-alpha.0...graphql-language-service-interface@2.4.2-alpha.1) (2020-08-12)
+
+**Note:** Version bump only for package graphql-language-service-interface
+
+## [2.4.2-alpha.0](https://github.com/graphql/graphiql/compare/graphql-language-service-interface@2.4.1...graphql-language-service-interface@2.4.2-alpha.0) (2020-08-10)
+
+**Note:** Version bump only for package graphql-language-service-interface
+
+## [2.4.1](https://github.com/graphql/graphiql/compare/graphql-language-service-interface@2.4.0...graphql-language-service-interface@2.4.1) (2020-08-06)
+
+### Bug Fixes
+
+- regression for variable def completion [#1622](https://github.com/graphql/graphiql/issues/1622) ([#1624](https://github.com/graphql/graphiql/issues/1624)) ([4f62a8f](https://github.com/graphql/graphiql/commit/4f62a8fd50d5a0357490c4e6a6a3016ef8972455))
+
 # [2.4.0](https://github.com/graphql/graphiql/compare/graphql-language-service-interface@2.4.0-alpha.11...graphql-language-service-interface@2.4.0) (2020-06-11)
 
 ### Bug Fixes
