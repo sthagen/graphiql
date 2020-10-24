@@ -1,5 +1,5 @@
 /**
- *  Copyright (c) 2019 GraphQL Contributors
+ *  Copyright (c) 2020 GraphQL Contributors
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -997,5 +997,31 @@ describe('graphql-hint', () => {
       { line: 0, ch: 27 },
     );
     expect(suggestions7.list).to.deep.equal(expectedSuggestions);
+  });
+  it('provides correct field name suggestions for an interface type', async () => {
+    const suggestions = await getHintSuggestions(
+      '{ first { ... on TestInterface { ',
+      {
+        line: 0,
+        ch: 33,
+      },
+    );
+    const list = [
+      {
+        text: 'scalar',
+        type: GraphQLString,
+        isDeprecated: false,
+      },
+      {
+        description: 'The name of the current Object type at runtime.',
+        isDeprecated: false,
+        text: '__typename',
+        type: GraphQLNonNull(GraphQLString),
+        deprecationReason: undefined,
+      },
+    ];
+
+    const expectedSuggestions = getExpectedSuggestions(list);
+    expect(suggestions.list).to.deep.equal(expectedSuggestions);
   });
 });
