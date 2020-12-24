@@ -20,6 +20,7 @@ import {
   OperationDefinitionNode,
   IntrospectionQuery,
   GraphQLType,
+  ValidationRule,
 } from 'graphql';
 import copyToClipboard from 'copy-to-clipboard';
 
@@ -87,19 +88,29 @@ export type FetcherResult =
   | string
   | { data: any };
 
+export type FetcherReturnType =
+  | Promise<FetcherResult>
+  | Observable<FetcherResult>
+  | AsyncIterable<FetcherResult>;
+
 export type Fetcher = (
   graphQLParams: FetcherParams,
   opts?: FetcherOpts,
-) => Promise<FetcherResult> | Observable<FetcherResult>;
+) => FetcherReturnType;
 
 type OnMouseMoveFn = Maybe<
   (moveEvent: MouseEvent | React.MouseEvent<Element>) => void
 >;
 type OnMouseUpFn = Maybe<() => void>;
 
+export type GraphiQLToolbarConfig = {
+  additionalContent?: React.ReactNode;
+};
+
 export type GraphiQLProps = {
   fetcher: Fetcher;
   schema?: GraphQLSchema;
+  validationRules?: ValidationRule[];
   query?: string;
   variables?: string;
   headers?: string;
@@ -123,6 +134,7 @@ export type GraphiQLProps = {
   ResultsTooltip?: typeof Component | FunctionComponent;
   readOnly?: boolean;
   docExplorerOpen?: boolean;
+  toolbar?: GraphiQLToolbarConfig;
 };
 
 export type GraphiQLState = {
@@ -440,6 +452,9 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
           title="Show History"
           label="History"
         />
+        {this.props.toolbar?.additionalContent
+          ? this.props.toolbar.additionalContent
+          : null}
       </GraphiQL.Toolbar>
     );
 
@@ -532,6 +547,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
                   this.queryEditorComponent = n;
                 }}
                 schema={this.state.schema}
+                validationRules={this.props.validationRules}
                 value={this.state.query}
                 onEdit={this.handleEditQuery}
                 onHintInformationRender={this.handleHintInformationRender}
@@ -803,7 +819,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
       fetcherOpts.headers = JSON.parse(this.props.headers);
     }
 
-    const fetch = observableToPromise(
+    const fetch = fetcherReturnToPromise(
       fetcher(
         {
           query: introspectionQuery,
@@ -812,6 +828,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
         fetcherOpts,
       ),
     );
+
     if (!isPromise(fetch)) {
       this.setState({
         response: 'Fetcher did not return a Promise for introspection.',
@@ -827,7 +844,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
 
         // Try the stock introspection query first, falling back on the
         // sans-subscriptions query for services which do not yet support it.
-        const fetch2 = observableToPromise(
+        const fetch2 = fetcherReturnToPromise(
           fetcher(
             {
               query: introspectionQuerySansSubscriptions,
@@ -947,8 +964,32 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
       });
 
       return subscription;
+    } else if (isAsyncIterable(fetch)) {
+      (async () => {
+        try {
+          for await (const result of fetch) {
+            cb(result);
+          }
+          this.safeSetState({
+            isWaitingForResponse: false,
+            subscription: null,
+          });
+        } catch (error) {
+          this.safeSetState({
+            isWaitingForResponse: false,
+            response: error ? GraphiQL.formatError(error) : undefined,
+            subscription: null,
+          });
+        }
+      })();
+
+      return {
+        unsubscribe: () => fetch[Symbol.asyncIterator]().return?.(),
+      };
     } else {
-      throw new Error('Fetcher did not return Promise or Observable.');
+      throw new Error(
+        'Fetcher did not return Promise, Observable or AsyncIterable.',
+      );
     }
   }
 
@@ -1121,7 +1162,7 @@ export class GraphiQL extends React.Component<GraphiQLProps, GraphiQLState> {
     }
 
     const ast = parse(query);
-    editor.setValue(print(mergeAST(ast)));
+    editor.setValue(print(mergeAST(ast, this.state.schema)));
   };
 
   handleEditQuery = debounce(100, (value: string) => {
@@ -1614,12 +1655,7 @@ type Observable<T> = {
 };
 
 // Duck-type Observable.take(1).toPromise()
-function observableToPromise<T>(
-  observable: Observable<T> | Promise<T>,
-): Promise<T> {
-  if (!isObservable<T>(observable)) {
-    return observable;
-  }
+function observableToPromise<T>(observable: Observable<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     const subscription = observable.subscribe(
       v => {
@@ -1641,6 +1677,56 @@ function isObservable<T>(value: any): value is Observable<T> {
     'subscribe' in value &&
     typeof value.subscribe === 'function'
   );
+}
+
+function isAsyncIterable(input: unknown): input is AsyncIterable<unknown> {
+  return (
+    typeof input === 'object' &&
+    input !== null &&
+    // Some browsers still don't have Symbol.asyncIterator implemented (iOS Safari)
+    // That means every custom AsyncIterable must be built using a AsyncGeneratorFunction (async function * () {})
+    ((input as any)[Symbol.toStringTag] === 'AsyncGenerator' ||
+      Symbol.asyncIterator in input)
+  );
+}
+
+function asyncIterableToPromise<T>(
+  input: AsyncIterable<T> | AsyncIterableIterator<T>,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    // Also support AsyncGenerator on Safari iOS.
+    // As mentioned in the isAsyncIterable function there is no Symbol.asyncIterator available
+    // so every AsyncIterable must be implemented using AsyncGenerator.
+    const iteratorReturn = ('return' in input
+      ? input
+      : input[Symbol.asyncIterator]()
+    ).return?.bind(input);
+    const iteratorNext = ('next' in input
+      ? input
+      : input[Symbol.asyncIterator]()
+    ).next.bind(input);
+
+    iteratorNext()
+      .then(result => {
+        resolve(result.value);
+        // ensure cleanup
+        iteratorReturn?.();
+      })
+      .catch(err => {
+        reject(err);
+      });
+  });
+}
+
+function fetcherReturnToPromise(
+  fetcherResult: FetcherReturnType,
+): Promise<FetcherResult> {
+  if (isAsyncIterable(fetcherResult)) {
+    return asyncIterableToPromise(fetcherResult);
+  } else if (isObservable(fetcherResult)) {
+    return observableToPromise(fetcherResult);
+  }
+  return fetcherResult;
 }
 
 // Determines if the React child is of the same type of the provided React component

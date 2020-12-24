@@ -9,7 +9,14 @@
  */
 
 import fs from 'fs';
-import { buildSchema, parse, GraphQLSchema, GraphQLError } from 'graphql';
+import {
+  buildSchema,
+  parse,
+  GraphQLSchema,
+  GraphQLError,
+  ValidationContext,
+  ASTVisitor,
+} from 'graphql';
 import path from 'path';
 
 import {
@@ -66,7 +73,7 @@ describe('getDiagnostics', () => {
     )[0];
     expect(error.message).toEqual(
       // eslint-disable-next-line no-useless-escape
-      'The field "Query.deprecatedField" is deprecated. Use test instead.',
+      'The field Query.deprecatedField is deprecated. Use test instead.',
     );
     expect(error.severity).toEqual(DIAGNOSTIC_SEVERITY.Warning);
     expect(error.source).toEqual('GraphQL: Deprecation');
@@ -104,7 +111,6 @@ describe('getDiagnostics', () => {
     expect(error.severity).toEqual(DIAGNOSTIC_SEVERITY.Error);
     expect(error.source).toEqual('GraphQL: Syntax');
   });
-
   // TODO: change this kitchen sink to depend on the local schema
   //       and then run diagnostics with the schema
   it('returns no errors after parsing kitchen-sink query', () => {
@@ -112,8 +118,22 @@ describe('getDiagnostics', () => {
       path.join(__dirname, '/kitchen-sink.graphql'),
       'utf8',
     );
-
     const errors = getDiagnostics(kitchenSink);
     expect(errors).toHaveLength(0);
+  });
+
+  it('returns a error with a custom validation rule', () => {
+    const noQueryRule = (context: ValidationContext): ASTVisitor => ({
+      OperationDefinition(node) {
+        if (node.operation === 'query') {
+          context.reportError(new GraphQLError('No query allowed.', node.name));
+        }
+      },
+    });
+    const errors = getDiagnostics(`query hero { hero { id } }`, schema, [
+      noQueryRule,
+    ]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toEqual('No query allowed.');
   });
 });

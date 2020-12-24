@@ -1,5 +1,3 @@
-/* global monaco */
-
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 
 import { api as GraphQLAPI } from 'monaco-graphql';
@@ -13,7 +11,22 @@ import JSONWorker from 'worker-loader!monaco-editor/esm/vs/language/json/json.wo
 // @ts-ignore
 import GraphQLWorker from 'worker-loader!monaco-graphql/esm/graphql.worker';
 
-const SCHEMA_URL = 'https://api.spacex.land/graphql/';
+const SCHEMA_URL = 'https://api.github.com/graphql';
+
+let API_TOKEN = '';
+
+const promptForToken = () => {
+  API_TOKEN =
+    window.localStorage.getItem('API_TOKEN') ||
+    (prompt('provide valid github token') as string);
+  if (!API_TOKEN || API_TOKEN.length < 32) {
+    promptForToken();
+  } else {
+    window.localStorage.setItem('API_TOKEN', API_TOKEN);
+  }
+};
+
+promptForToken();
 
 // @ts-ignore
 window.MonacoEnvironment = {
@@ -27,46 +40,19 @@ window.MonacoEnvironment = {
     return new EditorWorker();
   },
 };
+const operation = `
+# right click to view context menu
+# F1 for command palette
+# enjoy prettier formatting, autocompletion, 
+# validation, hinting and more for GraphQL SDL and operations!
 
-const schemas = {
-  remote: {
-    op: `
-query Example($limit: Int) {
-  launchesPast(limit: $limit) {
-    mission_name
-    # format me using the right click context menu
-              launch_date_local
-    launch_site {
-      site_name_long
-    }
-    links {
-      article_link
-      video_link
-    }
+query Example($owner: String!, $name: String!) {
+  repository(owner: $owner, name: $name) {
+    stargazerCount
   }
 }
-  `,
-    variables: `{ "limit": 10 }`,
-    load: ({ op, variables }: { op: string; variables: string }) => {
-      GraphQLAPI.setSchemaConfig({ uri: SCHEMA_URL });
-      variablesEditor.setValue(variables);
-      operationEditor.setValue(op);
-    },
-  },
-  local: {
-    op: `query Example {
-  allTodos {
-    id
-    name
-  }
-}`,
-    load: ({ op }: { op: string }) => {
-      setRawSchema();
-      variablesEditor.setValue('{}');
-      operationEditor.setValue(op);
-    },
-  },
-};
+`;
+const variables = `{ "owner": "graphql", "name": "graphiql" }`;
 
 const THEME = 'vs-dark';
 
@@ -75,26 +61,13 @@ schemaInput.type = 'text';
 
 schemaInput.value = SCHEMA_URL;
 
-const selectEl = document.createElement('select');
+const button = document.createElement('button');
 
-selectEl.onchange = e => {
-  e.preventDefault();
-  const type = selectEl.value as 'local' | 'remote';
-  if (schemas[type]) {
-    // @ts-ignore
-    schemas[type].load(schemas[type]);
-  }
-};
+button.id = 'button';
+button.innerText = 'Run';
 
-const createOption = (label: string, value: string) => {
-  const el = document.createElement('option');
-  el.label = label;
-  el.value = value;
-  return el;
-};
-
-selectEl.appendChild(createOption('Remote', 'remote'));
-selectEl.appendChild(createOption('Local', 'local'));
+button.onclick = () => executeCurrentOp();
+button.ontouchend = () => executeCurrentOp();
 
 schemaInput.onkeyup = e => {
   e.preventDefault();
@@ -107,44 +80,10 @@ schemaInput.onkeyup = e => {
 
 const toolbar = document.getElementById('toolbar');
 toolbar?.appendChild(schemaInput);
-toolbar?.appendChild(selectEl);
-
-async function setRawSchema() {
-  await GraphQLAPI.setSchema(`# Enumeration type for a level of priority
-  enum Priority {
-    LOW
-    MEDIUM
-    HIGH
-  }
-
-  # Our main todo type
-  type Todo {
-    id: ID!
-    name: String!
-    description: String
-    priority: Priority!
-  }
-
-  type Query {
-    # Get one todo item
-    todo(id: ID!): Todo
-    # Get all todo items
-    allTodos: [Todo!]!
-  }
-
-  type Mutation {
-    addTodo(name: String!, priority: Priority = LOW): Todo!
-    removeTodo(id: ID!): Todo!
-  }
-
-  schema {
-    query: Query
-    mutation: Mutation
-  }`);
-}
+toolbar?.appendChild(button);
 
 const variablesModel = monaco.editor.createModel(
-  `{}`,
+  variables,
   'json',
   monaco.Uri.file('/1/variables.json'),
 );
@@ -152,37 +91,25 @@ const variablesModel = monaco.editor.createModel(
 const resultsEditor = monaco.editor.create(
   document.getElementById('results') as HTMLElement,
   {
-    model: variablesModel,
+    value: `{}`,
+    language: 'json',
     automaticLayout: true,
     theme: THEME,
+    wordWrap: 'on',
   },
 );
+
 const variablesEditor = monaco.editor.create(
   document.getElementById('variables') as HTMLElement,
   {
-    value: `{ "limit": 10 }`,
+    model: variablesModel,
     language: 'json',
     automaticLayout: true,
     theme: THEME,
   },
 );
-const model = monaco.editor.createModel(
-  `
-query Example($limit: Int) {
-  launchesPast(limit: $limit) {
-    mission_name
-    # format me using the right click context menu
-              launch_date_local
-    launch_site {
-      site_name_long
-    }
-    links {
-      article_link
-      video_link
-    }
-  }
-}
-`,
+const operationModel = monaco.editor.createModel(
+  operation,
   'graphqlDev',
   monaco.Uri.file('/1/operation.graphql'),
 );
@@ -190,7 +117,7 @@ query Example($limit: Int) {
 const operationEditor = monaco.editor.create(
   document.getElementById('operation') as HTMLElement,
   {
-    model,
+    model: operationModel,
     automaticLayout: true,
     formatOnPaste: true,
     formatOnType: true,
@@ -220,7 +147,10 @@ async function executeCurrentOp() {
     }
     const result = await fetch(GraphQLAPI.schemaConfig.uri || SCHEMA_URL, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
       body: JSON.stringify(body),
     });
 
@@ -254,7 +184,14 @@ resultsEditor.addAction(opAction);
 let initialSchema = false;
 
 if (!initialSchema) {
-  schemas.remote.load(schemas.remote);
+  GraphQLAPI.setSchemaConfig({
+    uri: SCHEMA_URL,
+    requestOpts: {
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+    },
+  });
   initialSchema = true;
 }
 

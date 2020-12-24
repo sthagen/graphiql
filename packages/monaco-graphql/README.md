@@ -1,6 +1,9 @@
 # Monaco GraphQL
 
-GraphQL language plugin for the Monaco Editor. You can use it to build vscode/codespaces-like web or desktop IDEs using whatever frontend javascript libraries or frameworks you want (or even vanilla - see [the webpack example](../../examples/monaco-graphql-webpack/)).
+GraphQL language plugin for the Monaco Editor. You can use it to build vscode/codespaces-like web or desktop IDEs using whatever frontend javascript libraries or frameworks you want, or none!
+
+- [webpack example](../../examples/monaco-graphql-webpack/) using plain javascript
+- [live demo](https://monaco-graphql.netlify.com)of the monaco webpack example
 
 > **NOTE:** This is in pre-release state. Helping out with this project will help advance GraphiQL and many other GraphQL IDE projects. `codemirror-graphql` has more features, such as JSON variables validation, and is more stable.
 
@@ -82,7 +85,7 @@ GraphQLAPI.updateSchemaConfig({
 same as the above, except it overwrites the entire schema config
 
 ```ts
-GraphQLAPI.updateSchemaConfig({
+GraphQLAPI.setSchemaConfig({
   uri: 'https://my/schema',
   requestOptions: {
     headers: { Authorization: 'Bear Auth 2134' },

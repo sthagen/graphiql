@@ -17,7 +17,6 @@ import {
   ValidationRule,
 } from 'graphql';
 
-import invariant from 'assert';
 import { findDeprecatedUsages, parse } from 'graphql';
 
 import { CharacterStream, onlineParser } from 'graphql-language-service-parser';
@@ -48,6 +47,12 @@ export const DIAGNOSTIC_SEVERITY = {
   [SEVERITY.Warning]: 2 as DiagnosticSeverity,
   [SEVERITY.Information]: 3 as DiagnosticSeverity,
   [SEVERITY.Hint]: 4 as DiagnosticSeverity,
+};
+
+const invariant = (condition: any, message: string) => {
+  if (!condition) {
+    throw new Error(message);
+  }
 };
 
 export function getDiagnostics(
@@ -90,20 +95,17 @@ export function validateQuery(
     error => annotations(error, DIAGNOSTIC_SEVERITY.Error, 'Validation'),
   );
 
-  // Note: findDeprecatedUsages was added in graphql@0.9.0, but we want to
-  // support older versions of graphql-js.
-  const deprecationWarningAnnotations = !findDeprecatedUsages
-    ? []
-    : mapCat(findDeprecatedUsages(schema, ast), error =>
-        annotations(error, DIAGNOSTIC_SEVERITY.Warning, 'Deprecation'),
-      );
-
+  // TODO: detect if > graphql@15.2.0, and use the new rule for this.
+  const deprecationWarningAnnotations = mapCat(
+    findDeprecatedUsages(schema, ast),
+    error => annotations(error, DIAGNOSTIC_SEVERITY.Warning, 'Deprecation'),
+  );
   return validationErrorAnnotations.concat(deprecationWarningAnnotations);
 }
 
 // General utility for map-cating (aka flat-mapping).
 function mapCat<T>(
-  array: Array<T>,
+  array: ReadonlyArray<T>,
   mapper: (item: T) => Array<any>,
 ): Array<any> {
   return Array.prototype.concat.apply([], array.map(mapper));

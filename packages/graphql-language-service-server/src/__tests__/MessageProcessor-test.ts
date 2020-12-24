@@ -22,6 +22,7 @@ import { loadConfig } from 'graphql-config';
 import type { DefinitionQueryResult, Outline } from 'graphql-language-service';
 
 import { Logger } from '../Logger';
+import { pathToFileURL } from 'url';
 
 const baseConfig = { dirpath: __dirname };
 
@@ -36,7 +37,7 @@ describe('MessageProcessor', () => {
     loadConfigOptions: { rootDir: __dirname },
   });
 
-  const queryDir = `${__dirname}/__queries__`;
+  const queryPathUri = pathToFileURL(`${__dirname}/__queries__`);
   const textDocumentTestString = `
   {
     hero(episode: NEWHOPE){
@@ -106,13 +107,15 @@ describe('MessageProcessor', () => {
       },
     };
   });
+
+  let getConfigurationReturnValue = {};
   // @ts-ignore
   messageProcessor._connection = {
     // @ts-ignore
     get workspace() {
       return {
         getConfiguration: async () => {
-          return [{}];
+          return [getConfigurationReturnValue];
         },
       };
     },
@@ -121,7 +124,7 @@ describe('MessageProcessor', () => {
   const initialDocument = {
     textDocument: {
       text: textDocumentTestString,
-      uri: `${queryDir}/test.graphql`,
+      uri: `${queryPathUri}/test.graphql`,
       version: 0,
     },
   };
@@ -144,7 +147,7 @@ describe('MessageProcessor', () => {
   });
 
   it('runs completion requests properly', async () => {
-    const uri = `${queryDir}/test2.graphql`;
+    const uri = `${queryPathUri}/test2.graphql`;
     const query = 'test';
     messageProcessor._textDocumentCache.set(uri, {
       version: 0,
@@ -168,7 +171,7 @@ describe('MessageProcessor', () => {
   });
 
   it('runs document symbol requests', async () => {
-    const uri = `${queryDir}/test3.graphql`;
+    const uri = `${queryPathUri}/test3.graphql`;
     const validQuery = `
   {
     hero(episode: EMPIRE){
@@ -212,7 +215,7 @@ describe('MessageProcessor', () => {
   });
 
   it('properly changes the file cache with the didChange handler', async () => {
-    const uri = `file://${queryDir}/test.graphql`;
+    const uri = `${queryPathUri}/test.graphql`;
     messageProcessor._textDocumentCache.set(uri, {
       version: 1,
       contents: [
@@ -246,6 +249,15 @@ describe('MessageProcessor', () => {
     expect(result.diagnostics.length).toEqual(0);
   });
 
+  it('does not crash on null value returned in response to workspace configuration', async () => {
+    const previousConfigurationValue = getConfigurationReturnValue;
+    getConfigurationReturnValue = null;
+    await expect(
+      messageProcessor.handleDidChangeConfiguration(),
+    ).resolves.toStrictEqual({});
+    getConfigurationReturnValue = previousConfigurationValue;
+  });
+
   it('properly removes from the file cache with the didClose handler', async () => {
     await messageProcessor.handleDidCloseNotification(initialDocument);
 
@@ -273,7 +285,7 @@ describe('MessageProcessor', () => {
     const newDocument = {
       textDocument: {
         text: validQuery,
-        uri: `${queryDir}/test3.graphql`,
+        uri: `${queryPathUri}/test3.graphql`,
         version: 1,
       },
     };
@@ -295,7 +307,7 @@ describe('MessageProcessor', () => {
     };
 
     const result = await messageProcessor.handleDefinitionRequest(test);
-    await expect(result[0].uri).toEqual(`file://${queryDir}/test3.graphql`);
+    await expect(result[0].uri).toEqual(`${queryPathUri}/test3.graphql`);
   });
 
   it('parseDocument finds queries in tagged templates', async () => {

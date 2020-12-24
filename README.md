@@ -2,6 +2,7 @@
 
 # GraphQL IDE Monorepo
 
+> **Note:** The primary maintainer @acao is on hiatus until December 2020
 > **Looking for the [GraphiQL Docs?](packages/graphiql/README.md)**: This is the root of the monorepo! The full GraphiQL docs are located at [`packages/graphiql`](packages/graphiql)
 
 [![Build Status](https://github.com/graphql/graphiql/workflows/Node.JS%20CI/badge.svg)](https://github.com/graphql/graphiql/actions?query=workflow%3A%22Node.JS+CI%22)
@@ -63,11 +64,20 @@ The GraphiQL IDE, implemented in React, currently using [GraphQL mode for CodeMi
 
 ### How To Setup/Implement GraphiQL
 
-[![Edit graphiql-example](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/s/graphiql-example-nhzvc)
-
-(This example shows that GraphiQL works with `create-react-app` without requiring additional configuration)
+[![Edit graphiql-example](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/s/graphiql-js-next-example-qsh7h?file=/src/index.js)
 
 **The [GraphiQL Readme](packages/graphiql#readme) explains** some of the ways to implement GraphiQL, and we also have the [examples](examples) directory as well!
+
+## [Monaco GraphQL](packages/monaco-graphql#readme)
+
+[![NPM](https://img.shields.io/npm/v/monaco-graphql.svg)](https://npmjs.com/monaco-graphql)
+![jsDelivr hits (npm)](https://img.shields.io/jsdelivr/npm/hm/graphiql)
+![npm downloads](https://img.shields.io/npm/dm/monaco-graphql?label=npm%20downloads)
+![Snyk Vulnerabilities for npm package](https://img.shields.io/snyk/vulnerabilities/npm/monaco-graphql)
+
+Provides monaco editor with a powerful, schema-driven graphql language mode.
+
+See the [webpack example](examples/monaco-graphql-webpack#readme) for a plain javascript demo using github API
 
 ## [CodeMirror GraphQL](packages/codemirror-graphql#readme)
 
