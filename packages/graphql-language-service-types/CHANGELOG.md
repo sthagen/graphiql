@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.8.0](https://github.com/graphql/graphiql/compare/graphql-language-service-types@1.7.0...graphql-language-service-types@1.8.0) (2021-01-07)
+
+### Features
+
+- implied or external fragments, for [#612](https://github.com/graphql/graphiql/issues/612) ([#1750](https://github.com/graphql/graphiql/issues/1750)) ([cfed265](https://github.com/graphql/graphiql/commit/cfed265e3cf31875b39ea517781a217fcdfcadc2))
+
+# [1.7.0](https://github.com/graphql/graphiql/compare/graphql-language-service-types@1.6.3...graphql-language-service-types@1.7.0) (2021-01-03)
+
+### Features
+
+- merge completion logic (for implements &, variables) ([#1747](https://github.com/graphql/graphiql/issues/1747)) ([0ac0a85](https://github.com/graphql/graphiql/commit/0ac0a856cfc715d7885a9965a9a9114ef2ca4b1a))
+
 ## [1.6.3](https://github.com/graphql/graphiql/compare/graphql-language-service-types@1.6.2...graphql-language-service-types@1.6.3) (2020-09-18)
 
 **Note:** Version bump only for package graphql-language-service-types

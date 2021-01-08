@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.1.2](https://github.com/graphql/graphiql/compare/graphql-language-service@3.1.1...graphql-language-service@3.1.2) (2021-01-07)
+
+**Note:** Version bump only for package graphql-language-service
+
+## [3.1.1](https://github.com/graphql/graphiql/compare/graphql-language-service@3.1.0...graphql-language-service@3.1.1) (2021-01-07)
+
+**Note:** Version bump only for package graphql-language-service
+
+# [3.1.0](https://github.com/graphql/graphiql/compare/graphql-language-service@3.0.6...graphql-language-service@3.1.0) (2021-01-07)
+
+### Features
+
+- implied or external fragments, for [#612](https://github.com/graphql/graphiql/issues/612) ([#1750](https://github.com/graphql/graphiql/issues/1750)) ([cfed265](https://github.com/graphql/graphiql/commit/cfed265e3cf31875b39ea517781a217fcdfcadc2))
+
+## [3.0.6](https://github.com/graphql/graphiql/compare/graphql-language-service@3.0.5...graphql-language-service@3.0.6) (2021-01-03)
+
+**Note:** Version bump only for package graphql-language-service
+
 ## [3.0.5](https://github.com/graphql/graphiql/compare/graphql-language-service@3.0.4...graphql-language-service@3.0.5) (2020-12-28)
 
 **Note:** Version bump only for package graphql-language-service

@@ -10,7 +10,12 @@
 import { CompletionItem } from 'graphql-language-service-types';
 
 import fs from 'fs';
-import { buildSchema, GraphQLSchema } from 'graphql';
+import {
+  buildSchema,
+  FragmentDefinitionNode,
+  GraphQLSchema,
+  parse,
+} from 'graphql';
 import { Position } from 'graphql-language-service-utils';
 import path from 'path';
 
@@ -31,8 +36,15 @@ describe('getAutocompleteSuggestions', () => {
   function testSuggestions(
     query: string,
     point: Position,
+    externalFragments?: FragmentDefinitionNode[],
   ): Array<CompletionItem> {
-    return getAutocompleteSuggestions(schema, query, point)
+    return getAutocompleteSuggestions(
+      schema,
+      query,
+      point,
+      null,
+      externalFragments,
+    )
       .filter(
         field => !['__schema', '__type'].some(name => name === field.label),
       )
@@ -190,6 +202,36 @@ query name {
     expect(result).toEqual([{ label: 'id', detail: 'String!' }]);
   });
 
+  it('provides correct input type suggestions', () => {
+    const result = testSuggestions(
+      'query($exampleVariable: ) { ',
+      new Position(0, 24),
+    );
+    expect(result).toEqual([
+      { label: '__DirectiveLocation' },
+      { label: '__TypeKind' },
+      { label: 'Boolean' },
+      { label: 'Episode' },
+      { label: 'InputType' },
+      { label: 'Int' },
+      { label: 'String' },
+    ]);
+  });
+
+  it('provides filtered input type suggestions', () => {
+    const result = testSuggestions(
+      'query($exampleVariable: In) { ',
+      new Position(0, 26),
+    );
+    expect(result).toEqual([
+      { label: '__DirectiveLocation' },
+      { label: '__TypeKind' },
+      { label: 'InputType' },
+      { label: 'Int' },
+      { label: 'String' },
+    ]);
+  });
+
   it('provides correct typeCondition suggestions', () => {
     const suggestionsOnQuery = testSuggestions('{ ... on ', new Position(0, 9));
     expect(
@@ -237,6 +279,27 @@ query name {
     ]);
   });
 
+  it('provides correct suggestions when autocompleting for declared variable while typing', () => {
+    const result = testSuggestions(
+      'query($id: String, $ep: Episode!){ hero(episode: $ }',
+      new Position(0, 51),
+    );
+    expect(result).toEqual([{ label: '$ep', detail: 'Episode' }]);
+  });
+
+  it('provides correct suggestions when autocompleting for declared variable', () => {
+    const result = testSuggestions(
+      'query($id: String!, $episode: Episode!){ hero(episode: ',
+      new Position(0, 55),
+    );
+    expect(result).toEqual([
+      { label: '$episode', detail: 'Episode' },
+      { label: 'EMPIRE', detail: 'Episode' },
+      { label: 'JEDI', detail: 'Episode' },
+      { label: 'NEWHOPE', detail: 'Episode' },
+    ]);
+  });
+
   it('provides fragment name suggestion', () => {
     const fragmentDef = 'fragment Foo on Human { id }';
 
@@ -261,6 +324,28 @@ query name {
         new Position(0, 62),
       ),
     ).toEqual([{ label: 'Foo', detail: 'Human' }]);
+  });
+
+  it('provides correct fragment name suggestions for external fragments', () => {
+    const externalFragments = parse(`
+      fragment CharacterDetails on Human {
+        name
+      }
+      fragment CharacterDetails2 on Human {
+        name
+      }
+    `).definitions as FragmentDefinitionNode[];
+
+    const result = testSuggestions(
+      'query { human(id: "1") { ... }}',
+      new Position(0, 28),
+      externalFragments,
+    );
+
+    expect(result).toEqual([
+      { label: 'CharacterDetails', detail: 'Human' },
+      { label: 'CharacterDetails2', detail: 'Human' },
+    ]);
   });
 
   it('provides correct directive suggestions', () => {
@@ -350,33 +435,21 @@ query name {
         'type Type implements TestInterface & ',
         new Position(0, 37),
       ),
-    ).toEqual([
-      { label: 'AnotherInterface' },
-      { label: 'Character' },
-      { label: 'TestInterface' },
-    ]));
+    ).toEqual([{ label: 'AnotherInterface' }, { label: 'Character' }]));
   it('provides correct interface suggestions when extending an interface with multiple interfaces', () =>
     expect(
       testSuggestions(
         'interface IExample implements TestInterface & ',
         new Position(0, 46),
       ),
-    ).toEqual([
-      { label: 'AnotherInterface' },
-      { label: 'Character' },
-      { label: 'TestInterface' },
-    ]));
+    ).toEqual([{ label: 'AnotherInterface' }, { label: 'Character' }]));
   it('provides filtered interface suggestions when extending an interface with multiple interfaces', () =>
     expect(
-      testSuggestions('interface IExample implements I', new Position(0, 48)),
-    ).toEqual([
-      { label: 'AnotherInterface' },
-      // TODO: this shouldn't be here - must find way to
-      // track base interface name so we can filter it from inline suggestions
-      // on NamedType kind
-      { label: 'IExample' },
-      { label: 'TestInterface' },
-    ]));
+      testSuggestions(
+        'interface IExample implements TestInterface & Inter',
+        new Position(0, 48),
+      ),
+    ).toEqual([{ label: 'AnotherInterface' }]));
   it('provides no interface suggestions when using implements and there are no & or { characters present', () =>
     expect(
       testSuggestions(
