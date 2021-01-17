@@ -1,5 +1,5 @@
 /**
- *  Copyright (c) 2020 GraphQL Contributors.
+ *  Copyright (c) 2021 GraphQL Contributors.
  *
  *  This source code is licensed under the MIT license found in the
  *  LICENSE file in the root directory of this source tree.
@@ -1707,16 +1707,16 @@ type Observable<T> = {
 // Duck-type Observable.take(1).toPromise()
 function observableToPromise<T>(observable: Observable<T>): Promise<T> {
   return new Promise((resolve, reject) => {
-    const subscription = observable.subscribe(
-      v => {
+    const subscription = observable.subscribe({
+      next: v => {
         resolve(v);
         subscription.unsubscribe();
       },
-      reject,
-      () => {
+      error: reject,
+      complete: () => {
         reject(new Error('no value resolved'));
       },
-    );
+    });
   });
 }
 

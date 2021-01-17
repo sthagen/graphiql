@@ -1,5 +1,5 @@
 /**
- *  Copyright (c) 2020 GraphQL Contributors
+ *  Copyright (c) 2021 GraphQL Contributors
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -8,23 +8,23 @@
  */
 
 import {
-  GraphQLSchema,
-  GraphQLObjectType,
-  GraphQLUnionType,
-  GraphQLInterfaceType,
-  GraphQLEnumType,
-  GraphQLInputObjectType,
-  GraphQLBoolean,
-  GraphQLInt,
-  GraphQLFloat,
-  GraphQLString,
-  GraphQLID,
-  GraphQLList,
-  GraphQLDirective,
-  GraphQLSkipDirective,
-  GraphQLIncludeDirective,
-  GraphQLDeprecatedDirective,
   DirectiveLocation,
+  GraphQLBoolean,
+  GraphQLDeprecatedDirective,
+  GraphQLDirective,
+  GraphQLEnumType,
+  GraphQLFloat,
+  GraphQLID,
+  GraphQLIncludeDirective,
+  GraphQLInputObjectType,
+  GraphQLInt,
+  GraphQLInterfaceType,
+  GraphQLList,
+  GraphQLObjectType,
+  GraphQLSchema,
+  GraphQLSkipDirective,
+  GraphQLString,
+  GraphQLUnionType,
 } from 'graphql';
 
 // Test Schema

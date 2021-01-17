@@ -1,5 +1,5 @@
 /**
- *  Copyright (c) 2020 GraphQL Contributors
+ *  Copyright (c) 2021 GraphQL Contributors
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -7,11 +7,8 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
-import { expect } from 'chai';
-
 import CodeMirror from 'codemirror';
 import 'codemirror/addon/runmode/runmode';
-
 import '../mode';
 
 describe('graphql-variables-mode', () => {
@@ -26,7 +23,7 @@ describe('graphql-variables-mode', () => {
       }
     });
 
-    expect(tokens).to.deep.equal([
+    expect(tokens).toEqual([
       ['{', 'punctuation'],
       ['"variable"', 'variable'],
       [':', 'punctuation'],
@@ -60,7 +57,7 @@ describe('graphql-variables-mode', () => {
       }
     });
 
-    expect(tokens).to.deep.equal([
+    expect(tokens).toEqual([
       ['{', 'punctuation'],
       ['"variable"', 'variable'],
       [':', 'punctuation'],
@@ -83,13 +80,13 @@ describe('graphql-variables-mode', () => {
   it('returns "invalidchar" message when there is no matching token', () => {
     CodeMirror.runMode('herp derp', 'graphql-variables', (token, style) => {
       if (token.trim()) {
-        expect(style).to.equal('invalidchar');
+        expect(style).toBe('invalidchar');
       }
     });
 
     CodeMirror.runMode('{ foo', 'graphql-variables', (token, style) => {
       if (token === 'foo') {
-        expect(style).to.equal('invalidchar');
+        expect(style).toBe('invalidchar');
       }
     });
   });
