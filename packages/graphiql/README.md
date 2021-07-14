@@ -13,7 +13,7 @@
 ![npm bundle size (version)](https://img.shields.io/bundlephobia/min/graphiql/latest)
 ![npm bundle size (version)](https://img.shields.io/bundlephobia/minzip/graphiql/latest)
 [![License](https://img.shields.io/npm/l/graphiql.svg?style=flat-square)](LICENSE)
-
+[Discord Channel](https://discord.gg/NP5vbPeUFp)
 _/ˈɡrafək(ə)l/_ A graphical interactive in-browser GraphQL IDE. [Try the live demo](http://graphql.org/swapi-graphql).
 
 [![](https://raw.githubusercontent.com/graphql/graphiql/master/packages/graphiql/resources/graphiql.jpg)](http://graphql.org/swapi-graphql)
@@ -115,7 +115,7 @@ Read more about using [`createGraphiQLFetcher`](https://github.com/graphql/graph
 
 Don't forget to include the CSS file on the page! If you're using `npm` or `yarn`, you can find it in `node_modules/graphiql/graphiql.css`, or you can download it from the [releases page](https://github.com/graphql/graphiql/releases).
 
-For an example of setting up a GraphiQL, check out the [example](../examples/graphiql-cdn/) in this repository which also includes a few useful features highlighting GraphiQL's API.
+For an example of setting up a GraphiQL, check out the [example](../../examples/graphiql-cdn/) in this repository which also includes a few useful features highlighting GraphiQL's API.
 
 The most minimal way to set up GraphiQL is a single index.html file:
 
@@ -216,6 +216,7 @@ For more details on props, see the [API Docs](https://graphiql-test.netlify.app/
 | `onEditHeaders`              | `Function`                                                                                            | called when the request headers editor changes. The argument to the function will be the headers string.                                                                                        |
 | `onEditOperationName`        | `Function`                                                                                            | called when the operation name to be executed changes.                                                                                                                                          |
 | `onToggleDocs`               | `Function`                                                                                            | called when the docs will be toggled. The argument to the function will be a boolean whether the docs are now open or closed.                                                                   |
+| `maxHistoryLength`           | `number`                                                                                              | **Default:** 20. allows you to increase the number of queries in the history component                                                                                                          | 20 |
 
 ### Children (this pattern will be dropped in 2.0.0)
 
